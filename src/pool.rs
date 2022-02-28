@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::ops::Deref;
 
 use super::{Guard, PoisonError, TryLockError, UnpoisonError};
 
@@ -101,11 +102,17 @@ where
     /// # Ok(())
     /// # })().unwrap();
     /// ```
-    pub fn lock(&self, key: K) -> Result<Guard<'_, K>, PoisonError<K, Guard<'_, K>>> {
-        let mutex = self._load_or_insert_mutex_for_key(&key);
-        // Now we have an Arc::clone of the mutex for this key, and the global mutex is already unlocked so other threads can access the hash map.
-        // The following blocks until the mutex for this key is acquired.
-        self._lock(key, mutex)
+    pub fn lock(&self, key: K) -> Result<Guard<K, &Self>, PoisonError<K, Guard<K, &Self>>> {
+        Self::_lock(self, key)
+    }
+
+    /// Lock a lock by key.
+    /// 
+    /// This is similar to [LockPool::lock], but it works on an `Arc<LockPool>` instead of a [LockPool] and
+    /// returns a [Guard] that binds its lifetime to the [LockPool] in that [Arc]. Such a [Guard] can be more
+    /// easily moved around or cloned.
+    pub fn arc_lock(self: &Arc<Self>, key: K) -> Result<Guard<K, Arc<Self>>, PoisonError<K, Guard<K, Arc<Self>>>> {
+        Self::_lock(Arc::clone(self), key)
     }
 
     /// Attempts to acquire the lock with the given key.
@@ -140,9 +147,17 @@ where
     /// # Ok(())
     /// # })().unwrap();
     /// ```
-    pub fn try_lock(&self, key: K) -> Result<Guard<'_, K>, TryLockError<K, Guard<'_, K>>> {
-        let mutex = self._load_or_insert_mutex_for_key(&key);
-        self._try_lock(key, mutex)
+    pub fn try_lock(&self, key: K) -> Result<Guard<K, &Self>, TryLockError<K, Guard<K, &Self>>> {
+        Self::_try_lock(self, key)
+    }
+
+    /// Attempts to acquire the lock with the given key.
+    /// 
+    /// This is similar to [LockPool::try_lock], but it works on an `Arc<LockPool>` instead of a [LockPool] and
+    /// returns a [Guard] that binds its lifetime to the [LockPool] in that [Arc]. Such a [Guard] can be more
+    /// easily moved around or cloned.
+    pub fn arc_try_lock(self: &Arc<Self>, key: K) -> Result<Guard<K, Arc<Self>>, TryLockError<K, Guard<K, Arc<Self>>>> {
+        Self::_try_lock(Arc::clone(self), key)
     }
 
     /// Unpoisons a poisoned lock.
@@ -207,11 +222,14 @@ where
         }
     }
 
-    fn _lock(
-        &self,
+    fn _lock<S: Deref<Target=Self>>(
+        this: S,
         key: K,
-        mutex: Arc<Mutex<()>>,
-    ) -> Result<Guard<'_, K>, PoisonError<K, Guard<'_, K>>> {
+    ) -> Result<Guard<K, S>, PoisonError<K, Guard<K, S>>> {
+        let mutex = this._load_or_insert_mutex_for_key(&key);
+        // Now we have an Arc::clone of the mutex for this key, and the global mutex is already unlocked so other threads can access the hash map.
+        // The following blocks until the mutex for this key is acquired.
+
         let mut poisoned = false;
         let guard = OwningHandle::new_with_fn(mutex, |mutex: *const Mutex<()>| {
             let mutex: &Mutex<()> = unsafe { &*mutex };
@@ -224,19 +242,22 @@ where
             }
         });
         if poisoned {
-            let guard = Guard::new(self, key.clone(), guard, true);
+            let guard = Guard::new(this, key.clone(), guard, true);
             Err(PoisonError { key, guard })
         } else {
-            let guard = Guard::new(self, key, guard, false);
+            let guard = Guard::new(this, key, guard, false);
             Ok(guard)
         }
     }
 
-    fn _try_lock(
-        &self,
+    fn _try_lock<S: Deref<Target=Self>>(
+        this: S,
         key: K,
-        mutex: Arc<Mutex<()>>,
-    ) -> Result<Guard<'_, K>, TryLockError<K, Guard<'_, K>>> {
+    ) -> Result<Guard<K, S>, TryLockError<K, Guard<K, S>>> {
+        let mutex = this._load_or_insert_mutex_for_key(&key);
+        // Now we have an Arc::clone of the mutex for this key, and the global mutex is already unlocked so other threads can access the hash map.
+        // The following tries to lock the mutex.
+
         let mut poisoned = false;
         let guard = OwningHandle::try_new(mutex, |mutex: *const Mutex<()>| {
             let mutex: &Mutex<()> = unsafe { &*mutex };
@@ -250,10 +271,10 @@ where
             }
         })?;
         if poisoned {
-            let guard = Guard::new(self, key.clone(), guard, true);
+            let guard = Guard::new(this, key.clone(), guard, true);
             Err(TryLockError::Poisoned(PoisonError { key, guard }))
         } else {
-            let guard = Guard::new(self, key, guard, false);
+            let guard = Guard::new(this, key, guard, false);
             Ok(guard)
         }
     }
@@ -261,7 +282,7 @@ where
     pub(super) fn _unlock(
         &self,
         key: &K,
-        guard: OwningHandle<Arc<Mutex<()>>, MutexGuard<'_, ()>>,
+        guard: OwningHandle<Arc<Mutex<()>>, MutexGuard<'static, ()>>,
         poisoned: bool,
     ) {
         if poisoned {
@@ -319,10 +340,30 @@ mod tests {
     }
 
     #[test]
+    fn simple_arc_lock_unlock() {
+        let pool = Arc::new(LockPool::new());
+        assert_eq!(0, pool.num_locked_or_poisoned());
+        let guard = pool.arc_lock(4).unwrap();
+        assert_eq!(1, pool.num_locked_or_poisoned());
+        std::mem::drop(guard);
+        assert_eq!(0, pool.num_locked_or_poisoned());
+    }
+
+    #[test]
     fn simple_try_lock_unlock() {
         let pool = LockPool::new();
         assert_eq!(0, pool.num_locked_or_poisoned());
         let guard = pool.try_lock(4).unwrap();
+        assert_eq!(1, pool.num_locked_or_poisoned());
+        std::mem::drop(guard);
+        assert_eq!(0, pool.num_locked_or_poisoned());
+    }
+
+    #[test]
+    fn simple_arc_try_lock_unlock() {
+        let pool = Arc::new(LockPool::new());
+        assert_eq!(0, pool.num_locked_or_poisoned());
+        let guard = pool.arc_try_lock(4).unwrap();
         assert_eq!(1, pool.num_locked_or_poisoned());
         std::mem::drop(guard);
         assert_eq!(0, pool.num_locked_or_poisoned());
@@ -348,6 +389,25 @@ mod tests {
     }
 
     #[test]
+    fn multi_arc_lock_unlock() {
+        let pool = Arc::new(LockPool::new());
+        assert_eq!(0, pool.num_locked_or_poisoned());
+        let guard1 = pool.arc_lock(1).unwrap();
+        assert_eq!(1, pool.num_locked_or_poisoned());
+        let guard2 = pool.arc_lock(2).unwrap();
+        assert_eq!(2, pool.num_locked_or_poisoned());
+        let guard3 = pool.arc_lock(3).unwrap();
+        assert_eq!(3, pool.num_locked_or_poisoned());
+
+        std::mem::drop(guard2);
+        assert_eq!(2, pool.num_locked_or_poisoned());
+        std::mem::drop(guard1);
+        assert_eq!(1, pool.num_locked_or_poisoned());
+        std::mem::drop(guard3);
+        assert_eq!(0, pool.num_locked_or_poisoned());
+    }
+
+    #[test]
     fn multi_try_lock_unlock() {
         let pool = LockPool::new();
         assert_eq!(0, pool.num_locked_or_poisoned());
@@ -356,6 +416,25 @@ mod tests {
         let guard2 = pool.try_lock(2).unwrap();
         assert_eq!(2, pool.num_locked_or_poisoned());
         let guard3 = pool.try_lock(3).unwrap();
+        assert_eq!(3, pool.num_locked_or_poisoned());
+
+        std::mem::drop(guard2);
+        assert_eq!(2, pool.num_locked_or_poisoned());
+        std::mem::drop(guard1);
+        assert_eq!(1, pool.num_locked_or_poisoned());
+        std::mem::drop(guard3);
+        assert_eq!(0, pool.num_locked_or_poisoned());
+    }
+
+    #[test]
+    fn multi_arc_try_lock_unlock() {
+        let pool = Arc::new(LockPool::new());
+        assert_eq!(0, pool.num_locked_or_poisoned());
+        let guard1 = pool.arc_try_lock(1).unwrap();
+        assert_eq!(1, pool.num_locked_or_poisoned());
+        let guard2 = pool.arc_try_lock(2).unwrap();
+        assert_eq!(2, pool.num_locked_or_poisoned());
+        let guard3 = pool.arc_try_lock(3).unwrap();
         assert_eq!(3, pool.num_locked_or_poisoned());
 
         std::mem::drop(guard2);
@@ -389,10 +468,39 @@ mod tests {
         })
     }
 
+    fn launch_arc_locking_thread(
+        pool: &Arc<LockPool<isize>>,
+        key: isize,
+        counter: &Arc<AtomicU32>,
+        barrier: Option<&Arc<Mutex<()>>>,
+    ) -> JoinHandle<()> {
+        let pool = Arc::clone(pool);
+        let counter = Arc::clone(counter);
+        let barrier = barrier.map(Arc::clone);
+        thread::spawn(move || {
+            let guard = pool.arc_lock(key);
+            counter.fetch_add(1, Ordering::SeqCst);
+            let _guard = guard.unwrap();
+            if let Some(barrier) = barrier {
+                let _barrier = barrier.lock().unwrap();
+            }
+        })
+    }
+
     fn poison_lock(pool: &Arc<LockPool<isize>>, key: isize) {
         let pool_ref = Arc::clone(pool);
         thread::spawn(move || {
             let _guard = pool_ref.lock(key);
+            panic!("let's poison the lock");
+        })
+        .join()
+        .expect_err("The child thread should return an error");
+    }
+
+    fn poison_arc_lock(pool: &Arc<LockPool<isize>>, key: isize) {
+        let pool_ref = Arc::clone(pool);
+        thread::spawn(move || {
+            let _guard = pool_ref.arc_lock(key);
             panic!("let's poison the lock");
         })
         .join()
@@ -409,16 +517,26 @@ mod tests {
         .expect_err("The child thread should return an error");
     }
 
-    fn assert_is_lock_poisoned_error(
+    fn poison_arc_try_lock(pool: &Arc<LockPool<isize>>, key: isize) {
+        let pool_ref = Arc::clone(pool);
+        thread::spawn(move || {
+            let _guard = pool_ref.arc_try_lock(key).unwrap();
+            panic!("let's poison the lock");
+        })
+        .join()
+        .expect_err("The child thread should return an error");
+    }
+
+    fn assert_is_lock_poisoned_error<P: Deref<Target=LockPool<isize>>>(
         expected_key: isize,
-        error: &PoisonError<isize, Guard<'_, isize>>,
+        error: &PoisonError<isize, Guard<isize, P>>,
     ) {
         assert_eq!(expected_key, error.key);
     }
 
-    fn assert_is_try_lock_poisoned_error(
+    fn assert_is_try_lock_poisoned_error<P: Deref<Target=LockPool<isize>>>(
         expected_key: isize,
-        error: &TryLockError<isize, Guard<'_, isize>>,
+        error: &TryLockError<isize, Guard<isize, P>>,
     ) {
         match error {
             TryLockError::Poisoned(PoisonError {
@@ -459,6 +577,34 @@ mod tests {
     }
 
     #[test]
+    fn concurrent_arc_lock() {
+        let pool = Arc::new(LockPool::new());
+        let guard = pool.arc_lock(5).unwrap();
+
+        let counter = Arc::new(AtomicU32::new(0));
+
+        let child = launch_arc_locking_thread(&pool, 5, &counter, None);
+
+        // Check that even if we wait, the child thread won't get the lock
+        thread::sleep(Duration::from_millis(100));
+        assert_eq!(0, counter.load(Ordering::SeqCst));
+
+        // Check that we can stil lock other locks while the child is waiting
+        {
+            let _g = pool.arc_lock(4).unwrap();
+        }
+
+        // Now free the lock so the child can get it
+        std::mem::drop(guard);
+
+        // And check that the child got it
+        child.join().unwrap();
+        assert_eq!(1, counter.load(Ordering::SeqCst));
+
+        assert_eq!(0, pool.num_locked_or_poisoned());
+    }
+
+    #[test]
     fn concurrent_try_lock() {
         let pool = Arc::new(LockPool::new());
         let guard = pool.lock(5).unwrap();
@@ -477,6 +623,30 @@ mod tests {
         // And check that we can get it again
         {
             let _g = pool.try_lock(5).unwrap();
+        }
+
+        assert_eq!(0, pool.num_locked_or_poisoned());
+    }
+
+    #[test]
+    fn concurrent_arc_try_lock() {
+        let pool = Arc::new(LockPool::new());
+        let guard = pool.arc_lock(5).unwrap();
+
+        let error = pool.arc_try_lock(5).unwrap_err();
+        assert!(matches!(error, TryLockError::WouldBlock));
+
+        // Check that we can stil lock other locks while the child is waiting
+        {
+            let _g = pool.arc_try_lock(4).unwrap();
+        }
+
+        // Now free the lock so the we can get it again
+        std::mem::drop(guard);
+
+        // And check that we can get it again
+        {
+            let _g = pool.arc_try_lock(5).unwrap();
         }
 
         assert_eq!(0, pool.num_locked_or_poisoned());
@@ -522,6 +692,45 @@ mod tests {
     }
 
     #[test]
+    fn multi_concurrent_arc_lock() {
+        let pool = Arc::new(LockPool::new());
+        let guard = pool.arc_lock(5).unwrap();
+
+        let counter = Arc::new(AtomicU32::new(0));
+        let barrier = Arc::new(Mutex::new(()));
+        let barrier_guard = barrier.lock().unwrap();
+
+        let child1 = launch_arc_locking_thread(&pool, 5, &counter, Some(&barrier));
+        let child2 = launch_arc_locking_thread(&pool, 5, &counter, Some(&barrier));
+
+        // Check that even if we wait, the child thread won't get the lock
+        thread::sleep(Duration::from_millis(100));
+        assert_eq!(0, counter.load(Ordering::SeqCst));
+
+        // Check that we can stil lock other locks while the children are waiting
+        {
+            let _g = pool.arc_lock(4).unwrap();
+        }
+
+        // Now free the lock so a child can get it
+        std::mem::drop(guard);
+
+        // Check that a child got it
+        thread::sleep(Duration::from_millis(100));
+        assert_eq!(1, counter.load(Ordering::SeqCst));
+
+        // Allow the child to free the lock
+        std::mem::drop(barrier_guard);
+
+        // Check that the other child got it
+        child1.join().unwrap();
+        child2.join().unwrap();
+        assert_eq!(2, counter.load(Ordering::SeqCst));
+
+        assert_eq!(0, pool.num_locked_or_poisoned());
+    }
+
+    #[test]
     fn pool_mutex_poisoned_by_lock() {
         let pool = Arc::new(LockPool::new());
 
@@ -534,7 +743,17 @@ mod tests {
         }
 
         {
+            let err = pool.arc_lock(3).unwrap_err();
+            assert_is_lock_poisoned_error(3, &err);
+        }
+
+        {
             let err = pool.try_lock(3).unwrap_err();
+            assert_is_try_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.arc_try_lock(3).unwrap_err();
             assert_is_try_lock_poisoned_error(3, &err);
         }
 
@@ -544,7 +763,65 @@ mod tests {
         }
 
         {
+            let err = pool.arc_lock(3).unwrap_err();
+            assert_is_lock_poisoned_error(3, &err);
+        }
+
+        {
             let err = pool.try_lock(3).unwrap_err();
+            assert_is_try_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.arc_try_lock(3).unwrap_err();
+            assert_is_try_lock_poisoned_error(3, &err);
+        }
+    }
+
+    #[test]
+    fn pool_mutex_poisoned_by_arc_lock() {
+        let pool = Arc::new(LockPool::new());
+
+        poison_arc_lock(&pool, 3);
+
+        // All future lock attempts should error
+        {
+            let err = pool.lock(3).unwrap_err();
+            assert_is_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.arc_lock(3).unwrap_err();
+            assert_is_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.try_lock(3).unwrap_err();
+            assert_is_try_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.arc_try_lock(3).unwrap_err();
+            assert_is_try_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.lock(3).unwrap_err();
+            assert_is_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.arc_lock(3).unwrap_err();
+            assert_is_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.try_lock(3).unwrap_err();
+            assert_is_try_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.arc_try_lock(3).unwrap_err();
             assert_is_try_lock_poisoned_error(3, &err);
         }
     }
@@ -562,7 +839,17 @@ mod tests {
         }
 
         {
+            let err = pool.arc_lock(3).unwrap_err();
+            assert_is_lock_poisoned_error(3, &err);
+        }
+
+        {
             let err = pool.try_lock(3).unwrap_err();
+            assert_is_try_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.arc_try_lock(3).unwrap_err();
             assert_is_try_lock_poisoned_error(3, &err);
         }
 
@@ -572,7 +859,65 @@ mod tests {
         }
 
         {
+            let err = pool.arc_lock(3).unwrap_err();
+            assert_is_lock_poisoned_error(3, &err);
+        }
+
+        {
             let err = pool.try_lock(3).unwrap_err();
+            assert_is_try_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.arc_try_lock(3).unwrap_err();
+            assert_is_try_lock_poisoned_error(3, &err);
+        }
+    }
+
+    #[test]
+    fn pool_mutex_poisoned_by_arc_try_lock() {
+        let pool = Arc::new(LockPool::new());
+
+        poison_arc_try_lock(&pool, 3);
+
+        // All future lock attempts should error
+        {
+            let err = pool.lock(3).unwrap_err();
+            assert_is_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.arc_lock(3).unwrap_err();
+            assert_is_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.try_lock(3).unwrap_err();
+            assert_is_try_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.arc_try_lock(3).unwrap_err();
+            assert_is_try_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.lock(3).unwrap_err();
+            assert_is_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.arc_lock(3).unwrap_err();
+            assert_is_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.try_lock(3).unwrap_err();
+            assert_is_try_lock_poisoned_error(3, &err);
+        }
+
+        {
+            let err = pool.arc_try_lock(3).unwrap_err();
             assert_is_try_lock_poisoned_error(3, &err);
         }
     }
@@ -587,6 +932,32 @@ mod tests {
         let counter = Arc::new(AtomicU32::new(0));
 
         let child = launch_locking_thread(&pool, 5, &counter, None);
+
+        // Check that even if we wait, the child thread won't get the lock
+        thread::sleep(Duration::from_millis(100));
+        assert_eq!(0, counter.load(Ordering::SeqCst));
+
+        // Now free the lock so the child can get it
+        std::mem::drop(error);
+
+        // And check that the child got it
+        child.join().unwrap_err();
+        assert_eq!(1, counter.load(Ordering::SeqCst));
+
+        // The poisoned lock is still there
+        assert_eq!(1, pool.num_locked_or_poisoned());
+    }
+
+    #[test]
+    fn poison_error_holds_arc_lock() {
+        let pool = Arc::new(LockPool::new());
+        poison_arc_lock(&pool, 5);
+        let error = pool.arc_lock(5).unwrap_err();
+        assert_is_lock_poisoned_error(5, &error);
+
+        let counter = Arc::new(AtomicU32::new(0));
+
+        let child = launch_arc_locking_thread(&pool, 5, &counter, None);
 
         // Check that even if we wait, the child thread won't get the lock
         thread::sleep(Duration::from_millis(100));
@@ -625,6 +996,27 @@ mod tests {
     }
 
     #[test]
+    fn poison_error_holds_arc_try_lock() {
+        let pool = Arc::new(LockPool::new());
+        poison_arc_lock(&pool, 5);
+        let error = pool.arc_lock(5).unwrap_err();
+        assert_is_lock_poisoned_error(5, &error);
+
+        let err = pool.arc_try_lock(5).unwrap_err();
+        assert!(matches!(err, TryLockError::WouldBlock));
+
+        // Now free the lock so the child can get it
+        std::mem::drop(error);
+
+        // And check that it is still poisoned
+        let err = pool.try_lock(5).unwrap_err();
+        assert_is_try_lock_poisoned_error(5, &err);
+
+        // The poisoned lock is still there
+        assert_eq!(1, pool.num_locked_or_poisoned());
+    }
+
+    #[test]
     fn unpoison() {
         let pool = Arc::new(LockPool::new());
 
@@ -643,7 +1035,13 @@ mod tests {
             let _g = pool.lock(3).unwrap();
         }
         {
+            let _g = pool.arc_lock(3).unwrap();
+        }
+        {
             let _g = pool.try_lock(3).unwrap();
+        }
+        {
+            let _g = pool.arc_try_lock(3).unwrap();
         }
     }
 

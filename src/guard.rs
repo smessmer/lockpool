@@ -2,29 +2,32 @@ use owning_ref::OwningHandle;
 use std::fmt::{self, Debug};
 use std::hash::Hash;
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::ops::Deref;
 
 use super::LockPool;
 
 /// A RAII implementation of a scoped lock for locks from a [LockPool]. When this structure is dropped (falls out of scope), the lock will be unlocked.
 #[must_use = "if unused the Mutex will immediately unlock"]
-pub struct Guard<'a, K>
+pub struct Guard<K, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
+    P: Deref<Target=LockPool<K>>,
 {
-    pool: &'a LockPool<K>,
+    pool: P,
     key: K,
-    guard: Option<OwningHandle<Arc<Mutex<()>>, MutexGuard<'a, ()>>>,
+    guard: Option<OwningHandle<Arc<Mutex<()>>, MutexGuard<'static, ()>>>,
     poisoned: bool,
 }
 
-impl<'a, K> Guard<'a, K>
+impl<K, P> Guard<K, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
+    P: Deref<Target=LockPool<K>>,
 {
     pub(super) fn new(
-        pool: &'a LockPool<K>,
+        pool: P,
         key: K,
-        guard: OwningHandle<Arc<Mutex<()>>, MutexGuard<'a, ()>>,
+        guard: OwningHandle<Arc<Mutex<()>>, MutexGuard<'static, ()>>,
         poisoned: bool,
     ) -> Self {
         Self {
@@ -36,9 +39,10 @@ where
     }
 }
 
-impl<'a, K> Drop for Guard<'a, K>
+impl<K, P> Drop for Guard<K, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
+    P: Deref<Target=LockPool<K>>,
 {
     fn drop(&mut self) {
         let guard = self
@@ -49,9 +53,10 @@ where
     }
 }
 
-impl<'a, K> Debug for Guard<'a, K>
+impl<K, P> Debug for Guard<K, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
+    P: Deref<Target=LockPool<K>>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Guard({:?})", self.key)

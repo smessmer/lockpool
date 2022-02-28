@@ -1,5 +1,6 @@
-2.0.2 (unreleased)
+2.1.0 (unreleased)
 -----
+* Add Arc<LockPool>::arc_lock and Arc<LockPool>::arc_try_lock to allow easier lifetime handling.
 
 2.0.1
 -----
