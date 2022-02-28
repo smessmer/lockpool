@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::LockPool;
 
-/// A RAII implementation of a scoped lock for locks from a [LockPool]. When this structure is dropped (falls out of scope), the lock will be unlocked.
+/// A RAII implementation of a scoped lock for locks from a [LockPool]. When this instance is dropped (falls out of scope), the lock will be unlocked.
 #[must_use = "if unused the Mutex will immediately unlock"]
 pub struct Guard<K, P>
 where
@@ -62,3 +62,20 @@ where
         write!(f, "Guard({:?})", self.key)
     }
 }
+
+/// An owned handle to a held lock.
+/// When this instance is dropped (falls out of scope), the lock will be unlocked.
+/// 
+/// This is similar to [Guard], but only available if the [LockPool] is wrapped in an [Arc].
+/// Instead of borrowing the [LockPool], it clones the [Arc], incrementing the reference count.
+/// This means that unlike the [BorrowedGuard] returned from [LockPool::lock], [OwnedGuard] has the
+/// `'static` lifetime.
+pub type OwnedGuard<K> = Guard<K, Arc<LockPool<K>>>;
+
+/// An handle to a held lock.
+/// When this instance is dropped (falls out of scope), the lock will be unlocked.
+/// 
+/// This guard borrows a reference to the [LockPool] and therefore cannot live longer
+/// than the [LockPool] it belongs to. If you need something with easier lifetime handling,
+/// take a look at [OwnedGuard].
+pub type BorrowedGuard<'a, K> = Guard<K, &'a LockPool<K>>;

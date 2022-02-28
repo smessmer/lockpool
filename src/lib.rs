@@ -44,5 +44,5 @@ mod guard;
 mod pool;
 
 pub use error::{PoisonError, TryLockError, UnpoisonError};
-pub use guard::Guard;
+pub use guard::{OwnedGuard, BorrowedGuard, Guard};
 pub use pool::LockPool;

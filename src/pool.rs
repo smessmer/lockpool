@@ -5,7 +5,7 @@ use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use super::{Guard, PoisonError, TryLockError, UnpoisonError};
+use super::{OwnedGuard, BorrowedGuard, Guard, PoisonError, TryLockError, UnpoisonError};
 
 /// This is a pool of locks where individual locks can be locked/unlocked by key. It initially considers all keys as "unlocked", but they can be locked
 /// and if a second thread tries to acquire a lock for the same key, they will have to wait.
@@ -102,7 +102,7 @@ where
     /// # Ok(())
     /// # })().unwrap();
     /// ```
-    pub fn lock(&self, key: K) -> Result<Guard<K, &Self>, PoisonError<K, Guard<K, &Self>>> {
+    pub fn lock(&self, key: K) -> Result<BorrowedGuard<K>, PoisonError<K, BorrowedGuard<K>>> {
         Self::_lock(self, key)
     }
 
@@ -111,10 +111,7 @@ where
     /// This is similar to [LockPool::lock], but it works on an `Arc<LockPool>` instead of a [LockPool] and
     /// returns a [Guard] that binds its lifetime to the [LockPool] in that [Arc]. Such a [Guard] can be more
     /// easily moved around or cloned.
-    pub fn arc_lock(
-        self: &Arc<Self>,
-        key: K,
-    ) -> Result<Guard<K, Arc<Self>>, PoisonError<K, Guard<K, Arc<Self>>>> {
+    pub fn lock_owned(self: &Arc<Self>, key: K) -> Result<OwnedGuard<K>, PoisonError<K, OwnedGuard<K>>> {
         Self::_lock(Arc::clone(self), key)
     }
 
@@ -150,7 +147,7 @@ where
     /// # Ok(())
     /// # })().unwrap();
     /// ```
-    pub fn try_lock(&self, key: K) -> Result<Guard<K, &Self>, TryLockError<K, Guard<K, &Self>>> {
+    pub fn try_lock(&self, key: K) -> Result<BorrowedGuard<K>, TryLockError<K, BorrowedGuard<K>>> {
         Self::_try_lock(self, key)
     }
 
@@ -159,10 +156,7 @@ where
     /// This is similar to [LockPool::try_lock], but it works on an `Arc<LockPool>` instead of a [LockPool] and
     /// returns a [Guard] that binds its lifetime to the [LockPool] in that [Arc]. Such a [Guard] can be more
     /// easily moved around or cloned.
-    pub fn arc_try_lock(
-        self: &Arc<Self>,
-        key: K,
-    ) -> Result<Guard<K, Arc<Self>>, TryLockError<K, Guard<K, Arc<Self>>>> {
+    pub fn try_lock_owned(self: &Arc<Self>, key: K) -> Result<OwnedGuard<K>, TryLockError<K, OwnedGuard<K>>> {
         Self::_try_lock(Arc::clone(self), key)
     }
 
@@ -346,10 +340,10 @@ mod tests {
     }
 
     #[test]
-    fn simple_arc_lock_unlock() {
+    fn simple_lock_owned_unlock() {
         let pool = Arc::new(LockPool::new());
         assert_eq!(0, pool.num_locked_or_poisoned());
-        let guard = pool.arc_lock(4).unwrap();
+        let guard = pool.lock_owned(4).unwrap();
         assert_eq!(1, pool.num_locked_or_poisoned());
         std::mem::drop(guard);
         assert_eq!(0, pool.num_locked_or_poisoned());
@@ -366,10 +360,10 @@ mod tests {
     }
 
     #[test]
-    fn simple_arc_try_lock_unlock() {
+    fn simple_try_lock_owned_unlock() {
         let pool = Arc::new(LockPool::new());
         assert_eq!(0, pool.num_locked_or_poisoned());
-        let guard = pool.arc_try_lock(4).unwrap();
+        let guard = pool.try_lock_owned(4).unwrap();
         assert_eq!(1, pool.num_locked_or_poisoned());
         std::mem::drop(guard);
         assert_eq!(0, pool.num_locked_or_poisoned());
@@ -395,14 +389,14 @@ mod tests {
     }
 
     #[test]
-    fn multi_arc_lock_unlock() {
+    fn multi_lock_owned_unlock() {
         let pool = Arc::new(LockPool::new());
         assert_eq!(0, pool.num_locked_or_poisoned());
-        let guard1 = pool.arc_lock(1).unwrap();
+        let guard1 = pool.lock_owned(1).unwrap();
         assert_eq!(1, pool.num_locked_or_poisoned());
-        let guard2 = pool.arc_lock(2).unwrap();
+        let guard2 = pool.lock_owned(2).unwrap();
         assert_eq!(2, pool.num_locked_or_poisoned());
-        let guard3 = pool.arc_lock(3).unwrap();
+        let guard3 = pool.lock_owned(3).unwrap();
         assert_eq!(3, pool.num_locked_or_poisoned());
 
         std::mem::drop(guard2);
@@ -433,14 +427,14 @@ mod tests {
     }
 
     #[test]
-    fn multi_arc_try_lock_unlock() {
+    fn multi_try_lock_owned_unlock() {
         let pool = Arc::new(LockPool::new());
         assert_eq!(0, pool.num_locked_or_poisoned());
-        let guard1 = pool.arc_try_lock(1).unwrap();
+        let guard1 = pool.try_lock_owned(1).unwrap();
         assert_eq!(1, pool.num_locked_or_poisoned());
-        let guard2 = pool.arc_try_lock(2).unwrap();
+        let guard2 = pool.try_lock_owned(2).unwrap();
         assert_eq!(2, pool.num_locked_or_poisoned());
-        let guard3 = pool.arc_try_lock(3).unwrap();
+        let guard3 = pool.try_lock_owned(3).unwrap();
         assert_eq!(3, pool.num_locked_or_poisoned());
 
         std::mem::drop(guard2);
@@ -474,7 +468,7 @@ mod tests {
         })
     }
 
-    fn launch_arc_locking_thread(
+    fn launch_locking_owned_thread(
         pool: &Arc<LockPool<isize>>,
         key: isize,
         counter: &Arc<AtomicU32>,
@@ -484,7 +478,7 @@ mod tests {
         let counter = Arc::clone(counter);
         let barrier = barrier.map(Arc::clone);
         thread::spawn(move || {
-            let guard = pool.arc_lock(key);
+            let guard = pool.lock_owned(key);
             counter.fetch_add(1, Ordering::SeqCst);
             let _guard = guard.unwrap();
             if let Some(barrier) = barrier {
@@ -503,10 +497,10 @@ mod tests {
         .expect_err("The child thread should return an error");
     }
 
-    fn poison_arc_lock(pool: &Arc<LockPool<isize>>, key: isize) {
+    fn poison_lock_owned(pool: &Arc<LockPool<isize>>, key: isize) {
         let pool_ref = Arc::clone(pool);
         thread::spawn(move || {
-            let _guard = pool_ref.arc_lock(key);
+            let _guard = pool_ref.lock_owned(key);
             panic!("let's poison the lock");
         })
         .join()
@@ -523,10 +517,10 @@ mod tests {
         .expect_err("The child thread should return an error");
     }
 
-    fn poison_arc_try_lock(pool: &Arc<LockPool<isize>>, key: isize) {
+    fn poison_try_lock_owned(pool: &Arc<LockPool<isize>>, key: isize) {
         let pool_ref = Arc::clone(pool);
         thread::spawn(move || {
-            let _guard = pool_ref.arc_try_lock(key).unwrap();
+            let _guard = pool_ref.try_lock_owned(key).unwrap();
             panic!("let's poison the lock");
         })
         .join()
@@ -583,13 +577,13 @@ mod tests {
     }
 
     #[test]
-    fn concurrent_arc_lock() {
+    fn concurrent_lock_owned() {
         let pool = Arc::new(LockPool::new());
-        let guard = pool.arc_lock(5).unwrap();
+        let guard = pool.lock_owned(5).unwrap();
 
         let counter = Arc::new(AtomicU32::new(0));
 
-        let child = launch_arc_locking_thread(&pool, 5, &counter, None);
+        let child = launch_locking_owned_thread(&pool, 5, &counter, None);
 
         // Check that even if we wait, the child thread won't get the lock
         thread::sleep(Duration::from_millis(100));
@@ -597,7 +591,7 @@ mod tests {
 
         // Check that we can stil lock other locks while the child is waiting
         {
-            let _g = pool.arc_lock(4).unwrap();
+            let _g = pool.lock_owned(4).unwrap();
         }
 
         // Now free the lock so the child can get it
@@ -635,16 +629,16 @@ mod tests {
     }
 
     #[test]
-    fn concurrent_arc_try_lock() {
+    fn concurrent_try_lock_owned() {
         let pool = Arc::new(LockPool::new());
-        let guard = pool.arc_lock(5).unwrap();
+        let guard = pool.lock_owned(5).unwrap();
 
-        let error = pool.arc_try_lock(5).unwrap_err();
+        let error = pool.try_lock_owned(5).unwrap_err();
         assert!(matches!(error, TryLockError::WouldBlock));
 
         // Check that we can stil lock other locks while the child is waiting
         {
-            let _g = pool.arc_try_lock(4).unwrap();
+            let _g = pool.try_lock_owned(4).unwrap();
         }
 
         // Now free the lock so the we can get it again
@@ -652,7 +646,7 @@ mod tests {
 
         // And check that we can get it again
         {
-            let _g = pool.arc_try_lock(5).unwrap();
+            let _g = pool.try_lock_owned(5).unwrap();
         }
 
         assert_eq!(0, pool.num_locked_or_poisoned());
@@ -698,16 +692,16 @@ mod tests {
     }
 
     #[test]
-    fn multi_concurrent_arc_lock() {
+    fn multi_concurrent_lock_owned() {
         let pool = Arc::new(LockPool::new());
-        let guard = pool.arc_lock(5).unwrap();
+        let guard = pool.lock_owned(5).unwrap();
 
         let counter = Arc::new(AtomicU32::new(0));
         let barrier = Arc::new(Mutex::new(()));
         let barrier_guard = barrier.lock().unwrap();
 
-        let child1 = launch_arc_locking_thread(&pool, 5, &counter, Some(&barrier));
-        let child2 = launch_arc_locking_thread(&pool, 5, &counter, Some(&barrier));
+        let child1 = launch_locking_owned_thread(&pool, 5, &counter, Some(&barrier));
+        let child2 = launch_locking_owned_thread(&pool, 5, &counter, Some(&barrier));
 
         // Check that even if we wait, the child thread won't get the lock
         thread::sleep(Duration::from_millis(100));
@@ -715,7 +709,7 @@ mod tests {
 
         // Check that we can stil lock other locks while the children are waiting
         {
-            let _g = pool.arc_lock(4).unwrap();
+            let _g = pool.lock_owned(4).unwrap();
         }
 
         // Now free the lock so a child can get it
@@ -749,7 +743,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_lock(3).unwrap_err();
+            let err = pool.lock_owned(3).unwrap_err();
             assert_is_lock_poisoned_error(3, &err);
         }
 
@@ -759,7 +753,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_try_lock(3).unwrap_err();
+            let err = pool.try_lock_owned(3).unwrap_err();
             assert_is_try_lock_poisoned_error(3, &err);
         }
 
@@ -769,7 +763,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_lock(3).unwrap_err();
+            let err = pool.lock_owned(3).unwrap_err();
             assert_is_lock_poisoned_error(3, &err);
         }
 
@@ -779,16 +773,16 @@ mod tests {
         }
 
         {
-            let err = pool.arc_try_lock(3).unwrap_err();
+            let err = pool.try_lock_owned(3).unwrap_err();
             assert_is_try_lock_poisoned_error(3, &err);
         }
     }
 
     #[test]
-    fn pool_mutex_poisoned_by_arc_lock() {
+    fn pool_mutex_poisoned_by_lock_owned() {
         let pool = Arc::new(LockPool::new());
 
-        poison_arc_lock(&pool, 3);
+        poison_lock_owned(&pool, 3);
 
         // All future lock attempts should error
         {
@@ -797,7 +791,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_lock(3).unwrap_err();
+            let err = pool.lock_owned(3).unwrap_err();
             assert_is_lock_poisoned_error(3, &err);
         }
 
@@ -807,7 +801,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_try_lock(3).unwrap_err();
+            let err = pool.try_lock_owned(3).unwrap_err();
             assert_is_try_lock_poisoned_error(3, &err);
         }
 
@@ -817,7 +811,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_lock(3).unwrap_err();
+            let err = pool.lock_owned(3).unwrap_err();
             assert_is_lock_poisoned_error(3, &err);
         }
 
@@ -827,7 +821,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_try_lock(3).unwrap_err();
+            let err = pool.try_lock_owned(3).unwrap_err();
             assert_is_try_lock_poisoned_error(3, &err);
         }
     }
@@ -845,7 +839,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_lock(3).unwrap_err();
+            let err = pool.lock_owned(3).unwrap_err();
             assert_is_lock_poisoned_error(3, &err);
         }
 
@@ -855,7 +849,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_try_lock(3).unwrap_err();
+            let err = pool.try_lock_owned(3).unwrap_err();
             assert_is_try_lock_poisoned_error(3, &err);
         }
 
@@ -865,7 +859,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_lock(3).unwrap_err();
+            let err = pool.lock_owned(3).unwrap_err();
             assert_is_lock_poisoned_error(3, &err);
         }
 
@@ -875,16 +869,16 @@ mod tests {
         }
 
         {
-            let err = pool.arc_try_lock(3).unwrap_err();
+            let err = pool.try_lock_owned(3).unwrap_err();
             assert_is_try_lock_poisoned_error(3, &err);
         }
     }
 
     #[test]
-    fn pool_mutex_poisoned_by_arc_try_lock() {
+    fn pool_mutex_poisoned_by_try_lock_owned() {
         let pool = Arc::new(LockPool::new());
 
-        poison_arc_try_lock(&pool, 3);
+        poison_try_lock_owned(&pool, 3);
 
         // All future lock attempts should error
         {
@@ -893,7 +887,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_lock(3).unwrap_err();
+            let err = pool.lock_owned(3).unwrap_err();
             assert_is_lock_poisoned_error(3, &err);
         }
 
@@ -903,7 +897,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_try_lock(3).unwrap_err();
+            let err = pool.try_lock_owned(3).unwrap_err();
             assert_is_try_lock_poisoned_error(3, &err);
         }
 
@@ -913,7 +907,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_lock(3).unwrap_err();
+            let err = pool.lock_owned(3).unwrap_err();
             assert_is_lock_poisoned_error(3, &err);
         }
 
@@ -923,7 +917,7 @@ mod tests {
         }
 
         {
-            let err = pool.arc_try_lock(3).unwrap_err();
+            let err = pool.try_lock_owned(3).unwrap_err();
             assert_is_try_lock_poisoned_error(3, &err);
         }
     }
@@ -955,15 +949,15 @@ mod tests {
     }
 
     #[test]
-    fn poison_error_holds_arc_lock() {
+    fn poison_error_holds_lock_owned() {
         let pool = Arc::new(LockPool::new());
-        poison_arc_lock(&pool, 5);
-        let error = pool.arc_lock(5).unwrap_err();
+        poison_lock_owned(&pool, 5);
+        let error = pool.lock_owned(5).unwrap_err();
         assert_is_lock_poisoned_error(5, &error);
 
         let counter = Arc::new(AtomicU32::new(0));
 
-        let child = launch_arc_locking_thread(&pool, 5, &counter, None);
+        let child = launch_locking_owned_thread(&pool, 5, &counter, None);
 
         // Check that even if we wait, the child thread won't get the lock
         thread::sleep(Duration::from_millis(100));
@@ -1002,13 +996,13 @@ mod tests {
     }
 
     #[test]
-    fn poison_error_holds_arc_try_lock() {
+    fn poison_error_holds_try_lock_owned() {
         let pool = Arc::new(LockPool::new());
-        poison_arc_lock(&pool, 5);
-        let error = pool.arc_lock(5).unwrap_err();
+        poison_lock_owned(&pool, 5);
+        let error = pool.lock_owned(5).unwrap_err();
         assert_is_lock_poisoned_error(5, &error);
 
-        let err = pool.arc_try_lock(5).unwrap_err();
+        let err = pool.try_lock_owned(5).unwrap_err();
         assert!(matches!(err, TryLockError::WouldBlock));
 
         // Now free the lock so the child can get it
@@ -1041,13 +1035,13 @@ mod tests {
             let _g = pool.lock(3).unwrap();
         }
         {
-            let _g = pool.arc_lock(3).unwrap();
+            let _g = pool.lock_owned(3).unwrap();
         }
         {
             let _g = pool.try_lock(3).unwrap();
         }
         {
-            let _g = pool.arc_try_lock(3).unwrap();
+            let _g = pool.try_lock_owned(3).unwrap();
         }
     }
 
