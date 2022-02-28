@@ -2,8 +2,8 @@ use owning_ref::OwningHandle;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::sync::{Arc, Mutex, MutexGuard};
 use std::ops::Deref;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::{Guard, PoisonError, TryLockError, UnpoisonError};
 
@@ -107,11 +107,14 @@ where
     }
 
     /// Lock a lock by key.
-    /// 
+    ///
     /// This is similar to [LockPool::lock], but it works on an `Arc<LockPool>` instead of a [LockPool] and
     /// returns a [Guard] that binds its lifetime to the [LockPool] in that [Arc]. Such a [Guard] can be more
     /// easily moved around or cloned.
-    pub fn arc_lock(self: &Arc<Self>, key: K) -> Result<Guard<K, Arc<Self>>, PoisonError<K, Guard<K, Arc<Self>>>> {
+    pub fn arc_lock(
+        self: &Arc<Self>,
+        key: K,
+    ) -> Result<Guard<K, Arc<Self>>, PoisonError<K, Guard<K, Arc<Self>>>> {
         Self::_lock(Arc::clone(self), key)
     }
 
@@ -152,11 +155,14 @@ where
     }
 
     /// Attempts to acquire the lock with the given key.
-    /// 
+    ///
     /// This is similar to [LockPool::try_lock], but it works on an `Arc<LockPool>` instead of a [LockPool] and
     /// returns a [Guard] that binds its lifetime to the [LockPool] in that [Arc]. Such a [Guard] can be more
     /// easily moved around or cloned.
-    pub fn arc_try_lock(self: &Arc<Self>, key: K) -> Result<Guard<K, Arc<Self>>, TryLockError<K, Guard<K, Arc<Self>>>> {
+    pub fn arc_try_lock(
+        self: &Arc<Self>,
+        key: K,
+    ) -> Result<Guard<K, Arc<Self>>, TryLockError<K, Guard<K, Arc<Self>>>> {
         Self::_try_lock(Arc::clone(self), key)
     }
 
@@ -222,7 +228,7 @@ where
         }
     }
 
-    fn _lock<S: Deref<Target=Self>>(
+    fn _lock<S: Deref<Target = Self>>(
         this: S,
         key: K,
     ) -> Result<Guard<K, S>, PoisonError<K, Guard<K, S>>> {
@@ -250,7 +256,7 @@ where
         }
     }
 
-    fn _try_lock<S: Deref<Target=Self>>(
+    fn _try_lock<S: Deref<Target = Self>>(
         this: S,
         key: K,
     ) -> Result<Guard<K, S>, TryLockError<K, Guard<K, S>>> {
@@ -527,14 +533,14 @@ mod tests {
         .expect_err("The child thread should return an error");
     }
 
-    fn assert_is_lock_poisoned_error<P: Deref<Target=LockPool<isize>>>(
+    fn assert_is_lock_poisoned_error<P: Deref<Target = LockPool<isize>>>(
         expected_key: isize,
         error: &PoisonError<isize, Guard<isize, P>>,
     ) {
         assert_eq!(expected_key, error.key);
     }
 
-    fn assert_is_try_lock_poisoned_error<P: Deref<Target=LockPool<isize>>>(
+    fn assert_is_try_lock_poisoned_error<P: Deref<Target = LockPool<isize>>>(
         expected_key: isize,
         error: &TryLockError<isize, Guard<isize, P>>,
     ) {

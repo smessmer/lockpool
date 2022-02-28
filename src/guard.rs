@@ -1,8 +1,8 @@
 use owning_ref::OwningHandle;
 use std::fmt::{self, Debug};
 use std::hash::Hash;
-use std::sync::{Arc, Mutex, MutexGuard};
 use std::ops::Deref;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::LockPool;
 
@@ -11,7 +11,7 @@ use super::LockPool;
 pub struct Guard<K, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
-    P: Deref<Target=LockPool<K>>,
+    P: Deref<Target = LockPool<K>>,
 {
     pool: P,
     key: K,
@@ -22,7 +22,7 @@ where
 impl<K, P> Guard<K, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
-    P: Deref<Target=LockPool<K>>,
+    P: Deref<Target = LockPool<K>>,
 {
     pub(super) fn new(
         pool: P,
@@ -42,7 +42,7 @@ where
 impl<K, P> Drop for Guard<K, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
-    P: Deref<Target=LockPool<K>>,
+    P: Deref<Target = LockPool<K>>,
 {
     fn drop(&mut self) {
         let guard = self
@@ -56,7 +56,7 @@ where
 impl<K, P> Debug for Guard<K, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
-    P: Deref<Target=LockPool<K>>,
+    P: Deref<Target = LockPool<K>>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Guard({:?})", self.key)
