@@ -12,9 +12,9 @@ It initially considers all keys as "unlocked", but they can be locked
 and if a second thread tries to acquire a lock for the same key, they will have to wait.
 
 ```rust
-use lockpool::LockPool;
+use lockpool::{LockPool, SyncLockPool};
 
-let pool = LockPool::new();
+let pool = SyncLockPool::new();
 let guard1 = pool.lock(4)?;
 let guard2 = pool.lock(5)?;
 
@@ -29,12 +29,12 @@ let guard3 = pool.lock(4)?;
 You can use an arbitrary type to index locks by, as long as that type implements [PartialEq] + [Eq] + [Hash] + [Clone] + [Debug].
 
 ```rust
-use lockpool::LockPool;
+use lockpool::{LockPool, SyncLockPool};
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 struct CustomLockKey(u32);
 
-let pool = LockPool::new();
+let pool = SyncLockPool::new();
 let guard = pool.lock(CustomLockKey(4))?;
 ```
 
