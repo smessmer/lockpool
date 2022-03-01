@@ -1,6 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use crossbeam_utils::thread;
-use lockpool::LockPool;
+#[cfg(feature = "tokio")]
+use lockpool::AsyncLockPool;
+use lockpool::{LockPool, SyncLockPool};
 use std::sync::{Arc, Mutex};
 
 pub fn single_thread_lock_unlock(c: &mut Criterion) {
@@ -11,14 +13,37 @@ pub fn single_thread_lock_unlock(c: &mut Criterion) {
             let _g = mutex.lock().unwrap();
         })
     });
-    g.bench_function("LockPool (same key)", |b| {
-        let pool = LockPool::new();
+    #[cfg(feature = "tokio")]
+    g.bench_function("tokio Mutex", |b| {
+        let mutex = tokio::sync::Mutex::new(());
+        b.iter(|| {
+            let _g = mutex.blocking_lock();
+        })
+    });
+    g.bench_function("SyncLockPool (same key)", |b| {
+        let pool = SyncLockPool::new();
         b.iter(|| {
             let _g = pool.lock(black_box(3)).unwrap();
         })
     });
-    g.bench_function("LockPool (different key)", |b| {
-        let pool = LockPool::new();
+    #[cfg(feature = "tokio")]
+    g.bench_function("AsyncLockPool (same key)", |b| {
+        let pool = AsyncLockPool::new();
+        b.iter(|| {
+            let _g = pool.lock(black_box(3)).unwrap();
+        })
+    });
+    g.bench_function("SyncLockPool (different key)", |b| {
+        let pool = SyncLockPool::new();
+        let mut i = 0;
+        b.iter(|| {
+            i += 1;
+            let _g = pool.lock(black_box(i)).unwrap();
+        })
+    });
+    #[cfg(feature = "tokio")]
+    g.bench_function("AsyncLockPool (different key)", |b| {
+        let pool = AsyncLockPool::new();
         let mut i = 0;
         b.iter(|| {
             i += 1;
@@ -52,8 +77,19 @@ pub fn multi_thread_lock_unlock(c: &mut Criterion) {
             });
         })
     });
-    g.bench_function("LockPool (same key)", |b| {
-        let pool = LockPool::new();
+    #[cfg(feature = "tokio")]
+    g.bench_function("tokio Mutex", |b| {
+        let mutex = Arc::new(tokio::sync::Mutex::new(()));
+        b.iter(move || {
+            spawn_threads(NUM_THREADS, |_| {
+                for _ in 0..NUM_LOCKS_PER_THREAD {
+                    let _g = mutex.blocking_lock();
+                }
+            });
+        })
+    });
+    g.bench_function("SyncLockPool (same key)", |b| {
+        let pool = SyncLockPool::new();
         b.iter(move || {
             spawn_threads(NUM_THREADS, |_| {
                 for _ in 0..NUM_LOCKS_PER_THREAD {
@@ -62,8 +98,30 @@ pub fn multi_thread_lock_unlock(c: &mut Criterion) {
             });
         })
     });
-    g.bench_function("LockPool (different key)", |b| {
-        let pool = LockPool::new();
+    #[cfg(feature = "tokio")]
+    g.bench_function("AsyncLockPool (same key)", |b| {
+        let pool = AsyncLockPool::new();
+        b.iter(move || {
+            spawn_threads(NUM_THREADS, |_| {
+                for _ in 0..NUM_LOCKS_PER_THREAD {
+                    let _g = pool.lock(black_box(3)).unwrap();
+                }
+            });
+        })
+    });
+    g.bench_function("SyncLockPool (different key)", |b| {
+        let pool = SyncLockPool::new();
+        b.iter(move || {
+            spawn_threads(NUM_THREADS, |thread_index| {
+                for _ in 0..NUM_LOCKS_PER_THREAD {
+                    let _g = pool.lock(black_box(thread_index)).unwrap();
+                }
+            });
+        })
+    });
+    #[cfg(feature = "tokio")]
+    g.bench_function("AsyncLockPool (different key)", |b| {
+        let pool = AsyncLockPool::new();
         b.iter(move || {
             spawn_threads(NUM_THREADS, |thread_index| {
                 for _ in 0..NUM_LOCKS_PER_THREAD {

@@ -2,32 +2,35 @@ use owning_ref::OwningHandle;
 use std::fmt::{self, Debug};
 use std::hash::Hash;
 use std::ops::Deref;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::Arc;
 
-use super::LockPool;
+use super::mutex::MutexImpl;
+use crate::pool::LockPoolImpl;
 
 /// A RAII implementation of a scoped lock for locks from a [LockPool]. When this instance is dropped (falls out of scope), the lock will be unlocked.
 #[must_use = "if unused the Mutex will immediately unlock"]
-pub struct Guard<K, P>
+pub struct Guard<'a, K, M, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
-    P: Deref<Target = LockPool<K>>,
+    M: MutexImpl + 'a,
+    P: Deref<Target = LockPoolImpl<K, M>>,
 {
     pool: P,
     key: K,
-    guard: Option<OwningHandle<Arc<Mutex<()>>, MutexGuard<'static, ()>>>,
+    guard: Option<OwningHandle<Arc<M>, M::Guard<'a>>>,
     poisoned: bool,
 }
 
-impl<K, P> Guard<K, P>
+impl<'a, K, M, P> Guard<'a, K, M, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
-    P: Deref<Target = LockPool<K>>,
+    M: MutexImpl + 'a,
+    P: Deref<Target = LockPoolImpl<K, M>>,
 {
     pub(super) fn new(
         pool: P,
         key: K,
-        guard: OwningHandle<Arc<Mutex<()>>, MutexGuard<'static, ()>>,
+        guard: OwningHandle<Arc<M>, M::Guard<'a>>,
         poisoned: bool,
     ) -> Self {
         Self {
@@ -39,10 +42,11 @@ where
     }
 }
 
-impl<K, P> Drop for Guard<K, P>
+impl<'a, K, M, P> Drop for Guard<'a, K, M, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
-    P: Deref<Target = LockPool<K>>,
+    M: MutexImpl + 'a,
+    P: Deref<Target = LockPoolImpl<K, M>>,
 {
     fn drop(&mut self) {
         let guard = self
@@ -53,29 +57,13 @@ where
     }
 }
 
-impl<K, P> Debug for Guard<K, P>
+impl<'a, K, M, P> Debug for Guard<'a, K, M, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
-    P: Deref<Target = LockPool<K>>,
+    M: MutexImpl + 'a,
+    P: Deref<Target = LockPoolImpl<K, M>>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Guard({:?})", self.key)
     }
 }
-
-/// An owned handle to a held lock.
-/// When this instance is dropped (falls out of scope), the lock will be unlocked.
-/// 
-/// This is similar to [Guard], but only available if the [LockPool] is wrapped in an [Arc].
-/// Instead of borrowing the [LockPool], it clones the [Arc], incrementing the reference count.
-/// This means that unlike the [BorrowedGuard] returned from [LockPool::lock], [OwnedGuard] has the
-/// `'static` lifetime.
-pub type OwnedGuard<K> = Guard<K, Arc<LockPool<K>>>;
-
-/// An handle to a held lock.
-/// When this instance is dropped (falls out of scope), the lock will be unlocked.
-/// 
-/// This guard borrows a reference to the [LockPool] and therefore cannot live longer
-/// than the [LockPool] it belongs to. If you need something with easier lifetime handling,
-/// take a look at [OwnedGuard].
-pub type BorrowedGuard<'a, K> = Guard<K, &'a LockPool<K>>;

@@ -3,9 +3,9 @@
 //! and if a second thread tries to acquire a lock for the same key, they will have to wait.
 //!
 //! ```
-//! use lockpool::LockPool;
+//! use lockpool::{LockPool, SyncLockPool};
 //!
-//! let pool = LockPool::new();
+//! let pool = SyncLockPool::new();
 //! # (|| -> Result<(), lockpool::PoisonError<_, _>> {
 //! let guard1 = pool.lock(4)?;
 //! let guard2 = pool.lock(5)?;
@@ -23,12 +23,12 @@
 //! You can use an arbitrary type to index locks by, as long as that type implements [PartialEq] + [Eq] + [Hash] + [Clone] + [Debug].
 //!
 //! ```
-//! use lockpool::LockPool;
+//! use lockpool::{LockPool, SyncLockPool};
 //!
 //! #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 //! struct CustomLockKey(u32);
 //!
-//! let pool = LockPool::new();
+//! let pool = SyncLockPool::new();
 //! # (|| -> Result<(), lockpool::PoisonError<_, _>> {
 //! let guard = pool.lock(CustomLockKey(4))?;
 //! # Ok(())
@@ -38,11 +38,16 @@
 //! Under the hood, a [LockPool] is a [HashMap](std::collections::HashMap) of [Mutex](std::sync::Mutex)es, with some logic making sure there aren't any race conditions when accessing the hash map.
 
 #![deny(missing_docs)]
+#![feature(generic_associated_types)]
+#![feature(never_type)]
 
 mod error;
 mod guard;
+mod mutex;
 mod pool;
 
 pub use error::{PoisonError, TryLockError, UnpoisonError};
-pub use guard::{OwnedGuard, BorrowedGuard, Guard};
-pub use pool::LockPool;
+pub use pool::{LockPool, SyncLockPool};
+
+#[cfg(feature = "tokio")]
+pub use pool::AsyncLockPool;
