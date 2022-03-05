@@ -9,7 +9,7 @@ use std::time::Duration;
 
 // TODO Add a test that makes sure that lock_owned() actually returns 'static, i.e. that we can move it around without caring about lifetimes. And make sure that the same test doesn't compile with lock().
 
-pub(crate) fn test_simple_lock_unlock<P: LockPool<isize>>() {
+pub fn test_simple_lock_unlock<P: LockPool<isize>>() {
     let pool = P::new();
     assert_eq!(0, pool.num_locked_or_poisoned());
     let guard = pool.lock(4).unwrap();
@@ -18,7 +18,7 @@ pub(crate) fn test_simple_lock_unlock<P: LockPool<isize>>() {
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
-pub(crate) fn test_simple_lock_owned_unlock<P: LockPool<isize>>() {
+pub fn test_simple_lock_owned_unlock<P: LockPool<isize>>() {
     let pool = Arc::new(P::new());
     assert_eq!(0, pool.num_locked_or_poisoned());
     let guard = pool.lock_owned(4).unwrap();
@@ -27,7 +27,7 @@ pub(crate) fn test_simple_lock_owned_unlock<P: LockPool<isize>>() {
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
-pub(crate) fn test_simple_try_lock_unlock<P: LockPool<isize>>() {
+pub fn test_simple_try_lock_unlock<P: LockPool<isize>>() {
     let pool = P::new();
     assert_eq!(0, pool.num_locked_or_poisoned());
     let guard = pool.try_lock(4).unwrap();
@@ -36,7 +36,7 @@ pub(crate) fn test_simple_try_lock_unlock<P: LockPool<isize>>() {
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
-pub(crate) fn test_simple_try_lock_owned_unlock<P: LockPool<isize>>() {
+pub fn test_simple_try_lock_owned_unlock<P: LockPool<isize>>() {
     let pool = Arc::new(P::new());
     assert_eq!(0, pool.num_locked_or_poisoned());
     let guard = pool.try_lock_owned(4).unwrap();
@@ -45,7 +45,7 @@ pub(crate) fn test_simple_try_lock_owned_unlock<P: LockPool<isize>>() {
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
-pub(crate) fn test_multi_lock_unlock<P: LockPool<isize>>() {
+pub fn test_multi_lock_unlock<P: LockPool<isize>>() {
     let pool = P::new();
     assert_eq!(0, pool.num_locked_or_poisoned());
     let guard1 = pool.lock(1).unwrap();
@@ -63,7 +63,7 @@ pub(crate) fn test_multi_lock_unlock<P: LockPool<isize>>() {
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
-pub(crate) fn test_multi_lock_owned_unlock<P: LockPool<isize>>() {
+pub fn test_multi_lock_owned_unlock<P: LockPool<isize>>() {
     let pool = Arc::new(P::new());
     assert_eq!(0, pool.num_locked_or_poisoned());
     let guard1 = pool.lock_owned(1).unwrap();
@@ -81,7 +81,7 @@ pub(crate) fn test_multi_lock_owned_unlock<P: LockPool<isize>>() {
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
-pub(crate) fn test_multi_try_lock_unlock<P: LockPool<isize>>() {
+pub fn test_multi_try_lock_unlock<P: LockPool<isize>>() {
     let pool = P::new();
     assert_eq!(0, pool.num_locked_or_poisoned());
     let guard1 = pool.try_lock(1).unwrap();
@@ -99,7 +99,7 @@ pub(crate) fn test_multi_try_lock_unlock<P: LockPool<isize>>() {
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
-pub(crate) fn test_multi_try_lock_owned_unlock<P: LockPool<isize>>() {
+pub fn test_multi_try_lock_owned_unlock<P: LockPool<isize>>() {
     let pool = Arc::new(P::new());
     assert_eq!(0, pool.num_locked_or_poisoned());
     let guard1 = pool.try_lock_owned(1).unwrap();
@@ -121,7 +121,7 @@ pub(crate) fn test_multi_try_lock_owned_unlock<P: LockPool<isize>>() {
 // 1. locks the given key
 // 2. once it has the lock, increments a counter
 // 3. then waits until a barrier is released before it releases the lock
-pub(crate) fn launch_locking_thread<P: LockPool<isize> + Send + Sync + 'static>(
+pub fn launch_locking_thread<P: LockPool<isize> + Send + Sync + 'static>(
     pool: &Arc<P>,
     key: isize,
     counter: &Arc<AtomicU32>,
@@ -140,7 +140,7 @@ pub(crate) fn launch_locking_thread<P: LockPool<isize> + Send + Sync + 'static>(
     })
 }
 
-pub(crate) fn launch_locking_owned_thread<P: LockPool<isize> + Send + Sync + 'static>(
+pub fn launch_locking_owned_thread<P: LockPool<isize> + Send + Sync + 'static>(
     pool: &Arc<P>,
     key: isize,
     counter: &Arc<AtomicU32>,
@@ -159,7 +159,7 @@ pub(crate) fn launch_locking_owned_thread<P: LockPool<isize> + Send + Sync + 'st
     })
 }
 
-pub(crate) fn test_concurrent_lock<P: LockPool<isize> + Send + Sync + 'static>() {
+pub fn test_concurrent_lock<P: LockPool<isize> + Send + Sync + 'static>() {
     let pool = Arc::new(P::new());
     let guard = pool.lock(5).unwrap();
 
@@ -186,7 +186,7 @@ pub(crate) fn test_concurrent_lock<P: LockPool<isize> + Send + Sync + 'static>()
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
-pub(crate) fn test_concurrent_lock_owned<P: LockPool<isize> + Send + Sync + 'static>() {
+pub fn test_concurrent_lock_owned<P: LockPool<isize> + Send + Sync + 'static>() {
     let pool = Arc::new(P::new());
     let guard = pool.lock_owned(5).unwrap();
 
@@ -213,7 +213,7 @@ pub(crate) fn test_concurrent_lock_owned<P: LockPool<isize> + Send + Sync + 'sta
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
-pub(crate) fn test_concurrent_try_lock<P: LockPool<isize>>() {
+pub fn test_concurrent_try_lock<P: LockPool<isize>>() {
     let pool = Arc::new(P::new());
     let guard = pool.lock(5).unwrap();
 
@@ -236,7 +236,7 @@ pub(crate) fn test_concurrent_try_lock<P: LockPool<isize>>() {
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
-pub(crate) fn test_concurrent_try_lock_owned<P: LockPool<isize>>() {
+pub fn test_concurrent_try_lock_owned<P: LockPool<isize>>() {
     let pool = Arc::new(P::new());
     let guard = pool.lock_owned(5).unwrap();
 
@@ -259,7 +259,7 @@ pub(crate) fn test_concurrent_try_lock_owned<P: LockPool<isize>>() {
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
-pub(crate) fn test_multi_concurrent_lock<P: LockPool<isize> + Send + Sync + 'static>() {
+pub fn test_multi_concurrent_lock<P: LockPool<isize> + Send + Sync + 'static>() {
     let pool = Arc::new(P::new());
     let guard = pool.lock(5).unwrap();
 
@@ -297,7 +297,7 @@ pub(crate) fn test_multi_concurrent_lock<P: LockPool<isize> + Send + Sync + 'sta
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
-pub(crate) fn test_multi_concurrent_lock_owned<P: LockPool<isize> + Send + Sync + 'static>() {
+pub fn test_multi_concurrent_lock_owned<P: LockPool<isize> + Send + Sync + 'static>() {
     let pool = Arc::new(P::new());
     let guard = pool.lock_owned(5).unwrap();
 
