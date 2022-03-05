@@ -9,6 +9,8 @@ use std::time::Duration;
 
 pub mod utils {
     use crate::LockPool;
+    #[cfg(feature = "tokio")]
+    use crate::pool::pool_async::LockPoolAsync;
     use std::sync::atomic::{AtomicU32, Ordering};
     use std::sync::{Arc, Mutex};
     use std::thread::{self, JoinHandle};
@@ -36,6 +38,26 @@ pub mod utils {
         })
     }
 
+    #[cfg(feature = "tokio")]
+    pub fn launch_locking_async_thread<P: LockPoolAsync<isize> + Send + Sync + 'static>(
+        pool: &Arc<P>,
+        key: isize,
+        counter: &Arc<AtomicU32>,
+        barrier: Option<&Arc<Mutex<()>>>,
+    ) -> JoinHandle<()> {
+        let pool = Arc::clone(pool);
+        let counter = Arc::clone(counter);
+        let barrier = barrier.map(Arc::clone);
+        thread::spawn(move || {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            let _guard = runtime.block_on(pool.lock_async(key));
+            counter.fetch_add(1, Ordering::SeqCst);
+            if let Some(barrier) = barrier {
+                let _barrier = barrier.lock().unwrap();
+            }
+        })
+    }
+
     pub fn launch_locking_owned_thread<P: LockPool<isize> + Send + Sync + 'static>(
         pool: &Arc<P>,
         key: isize,
@@ -49,6 +71,26 @@ pub mod utils {
             let guard = pool.lock_owned(key);
             counter.fetch_add(1, Ordering::SeqCst);
             let _guard = guard.unwrap();
+            if let Some(barrier) = barrier {
+                let _barrier = barrier.lock().unwrap();
+            }
+        })
+    }
+
+    #[cfg(feature = "tokio")]
+    pub fn launch_locking_owned_async_thread<P: LockPoolAsync<isize> + Send + Sync + 'static>(
+        pool: &Arc<P>,
+        key: isize,
+        counter: &Arc<AtomicU32>,
+        barrier: Option<&Arc<Mutex<()>>>,
+    ) -> JoinHandle<()> {
+        let pool = Arc::clone(pool);
+        let counter = Arc::clone(counter);
+        let barrier = barrier.map(Arc::clone);
+        thread::spawn(move || {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            let _guard = runtime.block_on(pool.lock_owned_async(key));
+            counter.fetch_add(1, Ordering::SeqCst);
             if let Some(barrier) = barrier {
                 let _barrier = barrier.lock().unwrap();
             }
