@@ -73,4 +73,7 @@ where
 #[cfg(test)]
 mod tests {
     crate::instantiate_common_tests!(common, crate::AsyncLockPool<isize>);
+
+    // TODO Test unpoison behaves correctly
+    // TODO Test LockPoolAsync API
 }
