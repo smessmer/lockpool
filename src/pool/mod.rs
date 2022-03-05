@@ -70,6 +70,7 @@ where
     type OwnedGuard: Debug;
 
     /// Create a new lock pool where no lock is locked
+    #[inline]
     fn new() -> Self {
         Self::default()
     }
@@ -263,6 +264,7 @@ where
     K: Eq + PartialEq + Hash + Clone + Debug,
     M: MutexImpl,
 {
+    #[inline]
     fn default() -> Self {
         Self {
             currently_locked: Mutex::new(HashMap::new()),
@@ -279,6 +281,7 @@ where
     type Guard<'a> = Guard<'a, K, M, &'a Self>;
     type OwnedGuard = Guard<'static, K, M, Arc<LockPoolImpl<K, M>>>;
 
+    #[inline]
     fn num_locked_or_poisoned(&self) -> usize {
         self._currently_locked().len()
     }
