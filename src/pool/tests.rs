@@ -4,8 +4,105 @@ use super::LockPool;
 use crate::TryLockError;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
-use std::thread::{self, JoinHandle};
+use std::thread;
 use std::time::Duration;
+
+pub mod utils {
+    use crate::LockPool;
+    use std::sync::atomic::{AtomicU32, Ordering};
+    use std::sync::{Arc, Mutex};
+    use std::thread::{self, JoinHandle};
+
+    // Launch a thread that
+    // 1. locks the given key
+    // 2. once it has the lock, increments a counter
+    // 3. then waits until a barrier is released before it releases the lock
+    pub fn launch_locking_thread<P: LockPool<isize> + Send + Sync + 'static>(
+        pool: &Arc<P>,
+        key: isize,
+        counter: &Arc<AtomicU32>,
+        barrier: Option<&Arc<Mutex<()>>>,
+    ) -> JoinHandle<()> {
+        let pool = Arc::clone(pool);
+        let counter = Arc::clone(counter);
+        let barrier = barrier.map(Arc::clone);
+        thread::spawn(move || {
+            let guard = pool.lock(key);
+            counter.fetch_add(1, Ordering::SeqCst);
+            let _guard = guard.unwrap();
+            if let Some(barrier) = barrier {
+                let _barrier = barrier.lock().unwrap();
+            }
+        })
+    }
+
+    pub fn launch_locking_owned_thread<P: LockPool<isize> + Send + Sync + 'static>(
+        pool: &Arc<P>,
+        key: isize,
+        counter: &Arc<AtomicU32>,
+        barrier: Option<&Arc<Mutex<()>>>,
+    ) -> JoinHandle<()> {
+        let pool = Arc::clone(pool);
+        let counter = Arc::clone(counter);
+        let barrier = barrier.map(Arc::clone);
+        thread::spawn(move || {
+            let guard = pool.lock_owned(key);
+            counter.fetch_add(1, Ordering::SeqCst);
+            let _guard = guard.unwrap();
+            if let Some(barrier) = barrier {
+                let _barrier = barrier.lock().unwrap();
+            }
+        })
+    }
+
+    pub fn poison_lock<P: LockPool<isize> + Send + Sync + 'static>(pool: &Arc<P>, key: isize) {
+        let pool_ref = Arc::clone(pool);
+        thread::spawn(move || {
+            let _guard = pool_ref.lock(key);
+            panic!("let's poison the lock");
+        })
+        .join()
+        .expect_err("The child thread should return an error");
+    }
+
+    pub fn poison_lock_owned<P: LockPool<isize> + Send + Sync + 'static>(
+        pool: &Arc<P>,
+        key: isize,
+    ) {
+        let pool_ref = Arc::clone(pool);
+        thread::spawn(move || {
+            let _guard = pool_ref.lock_owned(key);
+            panic!("let's poison the lock");
+        })
+        .join()
+        .expect_err("The child thread should return an error");
+    }
+
+    pub fn poison_try_lock<P: LockPool<isize> + Send + Sync + 'static>(pool: &Arc<P>, key: isize) {
+        let pool_ref = Arc::clone(pool);
+        thread::spawn(move || {
+            let _guard = pool_ref.try_lock(key).unwrap();
+            panic!("let's poison the lock");
+        })
+        .join()
+        .expect_err("The child thread should return an error");
+    }
+
+    pub fn poison_try_lock_owned<P: LockPool<isize> + Send + Sync + 'static>(
+        pool: &Arc<P>,
+        key: isize,
+    ) {
+        let pool_ref = Arc::clone(pool);
+        thread::spawn(move || {
+            let _guard = pool_ref.try_lock_owned(key).unwrap();
+            panic!("let's poison the lock");
+        })
+        .join()
+        .expect_err("The child thread should return an error");
+    }
+}
+
+use utils::{launch_locking_owned_thread, launch_locking_thread};
 
 pub fn test_simple_lock_unlock<P: LockPool<isize>>() {
     let pool = P::new();
@@ -113,48 +210,6 @@ pub fn test_multi_try_lock_owned_unlock<P: LockPool<isize>>() {
     assert_eq!(1, pool.num_locked_or_poisoned());
     std::mem::drop(guard3);
     assert_eq!(0, pool.num_locked_or_poisoned());
-}
-
-// Launch a thread that
-// 1. locks the given key
-// 2. once it has the lock, increments a counter
-// 3. then waits until a barrier is released before it releases the lock
-pub fn launch_locking_thread<P: LockPool<isize> + Send + Sync + 'static>(
-    pool: &Arc<P>,
-    key: isize,
-    counter: &Arc<AtomicU32>,
-    barrier: Option<&Arc<Mutex<()>>>,
-) -> JoinHandle<()> {
-    let pool = Arc::clone(pool);
-    let counter = Arc::clone(counter);
-    let barrier = barrier.map(Arc::clone);
-    thread::spawn(move || {
-        let guard = pool.lock(key);
-        counter.fetch_add(1, Ordering::SeqCst);
-        let _guard = guard.unwrap();
-        if let Some(barrier) = barrier {
-            let _barrier = barrier.lock().unwrap();
-        }
-    })
-}
-
-pub fn launch_locking_owned_thread<P: LockPool<isize> + Send + Sync + 'static>(
-    pool: &Arc<P>,
-    key: isize,
-    counter: &Arc<AtomicU32>,
-    barrier: Option<&Arc<Mutex<()>>>,
-) -> JoinHandle<()> {
-    let pool = Arc::clone(pool);
-    let counter = Arc::clone(counter);
-    let barrier = barrier.map(Arc::clone);
-    thread::spawn(move || {
-        let guard = pool.lock_owned(key);
-        counter.fetch_add(1, Ordering::SeqCst);
-        let _guard = guard.unwrap();
-        if let Some(barrier) = barrier {
-            let _barrier = barrier.lock().unwrap();
-        }
-    })
 }
 
 pub fn test_concurrent_lock<P: LockPool<isize> + Send + Sync + 'static>() {
@@ -341,7 +396,9 @@ pub fn test_lock_owned_guards_can_be_passed_around<P: LockPool<isize> + Send + S
     let _guard = make_guard();
 }
 
-pub fn test_try_lock_owned_guards_can_be_passed_around<P: LockPool<isize> + Send + Sync + 'static>() {
+pub fn test_try_lock_owned_guards_can_be_passed_around<
+    P: LockPool<isize> + Send + Sync + 'static,
+>() {
     let make_guard = || {
         let pool = Arc::new(P::new());
         pool.try_lock_owned(5)

@@ -125,7 +125,7 @@ where
     /// This is similar to [LockPool::lock], but it works on an `Arc<LockPool>` instead of a [LockPool] and
     /// returns a [Guard] that binds its lifetime to the [LockPool] in that [Arc]. Such a [Guard] can be more
     /// easily moved around or cloned.
-    /// 
+    ///
     /// Errors
     /// -----
     /// If another user of this lock panicked while holding the lock, then this call will return an error once the lock is acquired.
@@ -200,7 +200,7 @@ where
     /// This is similar to [LockPool::try_lock], but it works on an `Arc<LockPool>` instead of a [LockPool] and
     /// returns a [Guard] that binds its lifetime to the [LockPool] in that [Arc]. Such a [Guard] can be more
     /// easily moved around or cloned.
-    /// 
+    ///
     /// This function does not block.
     ///
     /// Errors
@@ -310,6 +310,10 @@ where
     }
 
     fn unpoison(&self, key: K) -> Result<(), UnpoisonError> {
+        if !M::SUPPORTS_POISONING {
+            panic!("This lock pool doesn't support poisoning");
+        }
+
         let mut currently_locked = self._currently_locked();
         // TODO Alternative idea: Keep currently_locked locked so that no new threads can request locks, then wait until all
         // current threads have gotten and released their locks, then unpoison. This should get rid of the OtherThreadsBlockedOnMutex error case.
@@ -468,6 +472,6 @@ where
 #[cfg(test)]
 mod tests;
 
-pub mod pool_sync;
 #[cfg(feature = "tokio")]
 pub mod pool_async;
+pub mod pool_sync;

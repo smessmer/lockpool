@@ -26,6 +26,8 @@ pub trait MutexImpl {
     where
         Self: 'a;
 
+    const SUPPORTS_POISONING: bool;
+
     fn new() -> Self;
     fn lock(&self) -> Result<Self::Guard<'_>, Self::LockError<'_>>;
     fn try_lock(&self) -> Result<Self::Guard<'_>, std::sync::TryLockError<Self::Guard<'_>>>;
@@ -34,6 +36,8 @@ pub trait MutexImpl {
 impl MutexImpl for std::sync::Mutex<()> {
     type Guard<'a> = std::sync::MutexGuard<'a, ()>;
     type LockError<'a> = std::sync::PoisonError<Self::Guard<'a>>;
+
+    const SUPPORTS_POISONING: bool = true;
 
     fn new() -> Self {
         std::sync::Mutex::new(())
@@ -52,6 +56,8 @@ impl MutexImpl for std::sync::Mutex<()> {
 impl MutexImpl for tokio::sync::Mutex<()> {
     type Guard<'a> = tokio::sync::MutexGuard<'a, ()>;
     type LockError<'a> = !;
+
+    const SUPPORTS_POISONING: bool = false;
 
     fn new() -> Self {
         tokio::sync::Mutex::new(())

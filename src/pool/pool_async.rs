@@ -5,13 +5,13 @@ use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::Arc;
 
-use crate::pool::LockPool;
 use crate::guard::Guard;
+use crate::pool::LockPool;
 
 /// [AsyncLockPool] is an implementation of [LockPoolAsync] (see [LockPoolAsync] for API details) that can be used
 /// in asynchronous code. It is a little slower than [SyncLockPool] but its locks can be held across
 /// `await` points.
-/// 
+///
 /// This implementation can also be used in synchronous code since it also implements the [LockPool] API,
 /// but it will panic if you call [LockPool::lock] or [LockPool::lock_owned] from an `async` context,
 /// see the documentation of [tokio::sync::Mutex::blocking_lock].
@@ -72,9 +72,39 @@ where
 
 #[cfg(test)]
 mod tests {
-    crate::instantiate_common_tests!(common, crate::AsyncLockPool<isize>);
+    use super::AsyncLockPool;
+    use crate::LockPool;
+    use std::sync::Arc;
+    use std::thread;
 
-    // TODO Test unpoison behaves correctly
+    crate::instantiate_common_tests!(common, super::AsyncLockPool<isize>);
+
+    fn poison_lock<P: LockPool<isize> + Send + Sync + 'static>(pool: &Arc<P>, key: isize) {
+        let pool_ref = Arc::clone(pool);
+        thread::spawn(move || {
+            let _guard = pool_ref.lock(key);
+            panic!("let's poison the lock");
+        })
+        .join()
+        .expect_err("The child thread should return an error");
+    }
+
+    #[test]
+    #[should_panic(expected = "This lock pool doesn't support poisoning")]
+    fn test_unpoison_not_poisoned() {
+        let p = AsyncLockPool::new();
+        let _ = p.unpoison(2);
+    }
+
+    #[test]
+    #[should_panic(expected = "This lock pool doesn't support poisoning")]
+    fn test_unpoison_poisoned() {
+        let p = Arc::new(crate::AsyncLockPool::new());
+        poison_lock(&p, 2);
+
+        let _ = p.unpoison(2);
+    }
+
     // TODO Test LockPoolAsync API
     // TODO Test that sync API panics when called from async context
     //       - and make sure that that's correctly documented

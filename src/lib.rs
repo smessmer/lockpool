@@ -49,8 +49,8 @@ mod mutex;
 mod pool;
 
 pub use error::{PoisonError, TryLockError, UnpoisonError};
-pub use pool::LockPool;
 pub use pool::pool_sync::SyncLockPool;
+pub use pool::LockPool;
 
 #[cfg(feature = "tokio")]
 pub use pool::pool_async::{AsyncLockPool, LockPoolAsync};
