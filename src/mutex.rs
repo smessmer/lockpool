@@ -11,7 +11,7 @@ impl<'a, T> LockError<'a> for std::sync::PoisonError<std::sync::MutexGuard<'a, T
 }
 
 #[cfg(feature = "tokio")]
-pub struct Never<T>{
+pub struct Never<T> {
     _p: std::marker::PhantomData<T>,
     _n: !,
 }
@@ -39,9 +39,15 @@ pub trait MutexImpl {
     fn try_lock(&self) -> Result<Self::Guard<'_>, std::sync::TryLockError<Self::Guard<'_>>>;
 }
 
-impl <T: Default> MutexImpl for std::sync::Mutex<T> {
-    type Guard<'a> where T: 'a = std::sync::MutexGuard<'a, T>;
-    type LockError<'a> where T: 'a = std::sync::PoisonError<Self::Guard<'a>>;
+impl<T: Default> MutexImpl for std::sync::Mutex<T> {
+    type Guard<'a>
+    where
+        T: 'a,
+    = std::sync::MutexGuard<'a, T>;
+    type LockError<'a>
+    where
+        T: 'a,
+    = std::sync::PoisonError<Self::Guard<'a>>;
 
     const SUPPORTS_POISONING: bool = true;
 
@@ -59,9 +65,15 @@ impl <T: Default> MutexImpl for std::sync::Mutex<T> {
 }
 
 #[cfg(feature = "tokio")]
-impl <T: Default> MutexImpl for tokio::sync::Mutex<T> {
-    type Guard<'a> where T: 'a = tokio::sync::MutexGuard<'a, T>;
-    type LockError<'a> where T: 'a = Never<T>;
+impl<T: Default> MutexImpl for tokio::sync::Mutex<T> {
+    type Guard<'a>
+    where
+        T: 'a,
+    = tokio::sync::MutexGuard<'a, T>;
+    type LockError<'a>
+    where
+        T: 'a,
+    = Never<T>;
 
     const SUPPORTS_POISONING: bool = false;
 
