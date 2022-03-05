@@ -186,31 +186,7 @@ where
     fn unpoison(&self, key: K) -> Result<(), UnpoisonError>;
 }
 
-/// This is a pool of locks where individual locks can be locked/unlocked by key. It initially considers all keys as "unlocked", but they can be locked
-/// and if a second thread tries to acquire a lock for the same key, they will have to wait.
-///
-/// Under the hood, a [LockPool] is a [HashMap] of [Mutex]es, with some logic making sure there aren't any race conditions when accessing the hash map.
-///
-/// Example:
-/// -----
-/// ```
-/// use lockpool::{LockPool, SyncLockPool};
-///
-/// let pool = SyncLockPool::new();
-/// # (|| -> Result<(), lockpool::PoisonError<_, _>> {
-/// let guard1 = pool.lock(4)?;
-/// let guard2 = pool.lock(5)?;
-///
-/// // This next line would cause a deadlock or panic because `4` is already locked on this thread
-/// // let guard3 = pool.lock(4)?;
-///
-/// // After dropping the corresponding guard, we can lock it again
-/// std::mem::drop(guard1);
-/// let guard3 = pool.lock(4)?;
-/// # Ok(())
-/// # })().unwrap();
-/// ```
-///
+/// This struct implements both [SyncLockPool] and [AsyncLockPool]. See [LockPool] for the API.
 pub struct LockPoolImpl<K, M>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
@@ -306,7 +282,7 @@ where
             .expect("The global mutex protecting the lock pool is poisoned. This shouldn't happen since there shouldn't be any user code running while this lock is held so no thread should ever panic with it")
     }
 
-    fn _load_or_insert_mutex_for_key(&self, key: &K) -> Arc<M> {
+    pub(super) fn _load_or_insert_mutex_for_key(&self, key: &K) -> Arc<M> {
         let mut currently_locked = self._currently_locked();
         if let Some(mutex) = currently_locked.get_mut(key).map(|a| Arc::clone(a)) {
             mutex
@@ -440,7 +416,7 @@ pub type SyncLockPool<K> = LockPoolImpl<K, std::sync::Mutex<()>>;
 ///
 /// [AsyncLockPool] implements [LockPool] for when you want to lock in synchronous code. That API will
 /// panic if called from asynchronous code, see the documentation of [tokio::sync::Mutex::blocking_lock].
-/// For use in asynchronous code, [AsyncLockPool] also implements toe [TODO] API.
+/// For use in asynchronous code, [AsyncLockPool] also implements the [LockPoolAsync] API.
 #[cfg(feature = "tokio")]
 pub type AsyncLockPool<K> = LockPoolImpl<K, tokio::sync::Mutex<()>>;
 

@@ -3,6 +3,17 @@
 version = 3
 
 [[package]]
+name = "async-trait"
+version = "0.1.52"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "061a7acccaa286c011ddc30970520b98fa40e00c9d644633fb26b5fc63a265e3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -232,6 +243,7 @@ checksum = "dd8f7255a17a627354f321ef0055d63b898c6fb27eff628af4d1b66b7331edf6"
 name = "lockpool"
 version = "2.0.2"
 dependencies = [
+ "async-trait",
  "criterion",
  "crossbeam-utils",
  "owning_ref",
@@ -291,8 +303,7 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 [[package]]
 name = "owning_ref"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ff55baddef9e4ad00f88b6c743a2a8062d4c6ade126c2a528644b8e444d52ce"
+source = "git+https://github.com/smessmer/owning-ref-rs.git?rev=33b9630201751021958405ac956d5f2ea23f4909#33b9630201751021958405ac956d5f2ea23f4909"
 dependencies = [
  "stable_deref_trait",
 ]

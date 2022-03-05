@@ -51,7 +51,7 @@ impl MutexImpl for std::sync::Mutex<()> {
 #[cfg(feature = "tokio")]
 impl MutexImpl for tokio::sync::Mutex<()> {
     type Guard<'a> = tokio::sync::MutexGuard<'a, ()>;
-    type LockError<'a> = !; // TODO Should be ! instead of ()
+    type LockError<'a> = !;
 
     fn new() -> Self {
         tokio::sync::Mutex::new(())

@@ -36,6 +36,8 @@
 //! ```
 //!
 //! Under the hood, a [LockPool] is a [HashMap](std::collections::HashMap) of [Mutex](std::sync::Mutex)es, with some logic making sure there aren't any race conditions when accessing the hash map.
+//!
+//! If the `tokio` feature is enabled, then this crate also offers [AsyncLockPool] which allows locks to be held across `await` points.
 
 #![deny(missing_docs)]
 #![feature(generic_associated_types)]
@@ -45,6 +47,8 @@ mod error;
 mod guard;
 mod mutex;
 mod pool;
+#[cfg(feature = "tokio")]
+mod pool_async;
 
 pub use error::{PoisonError, TryLockError, UnpoisonError};
 pub use pool::{LockPool, SyncLockPool};
