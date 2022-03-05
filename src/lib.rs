@@ -53,4 +53,4 @@ pub use pool::pool_sync::SyncLockPool;
 pub use pool::LockPool;
 
 #[cfg(feature = "tokio")]
-pub use pool::pool_async::{TokioLockPool, AsyncLockPool};
+pub use pool::pool_async::{AsyncLockPool, TokioLockPool};

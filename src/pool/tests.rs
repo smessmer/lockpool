@@ -8,9 +8,9 @@ use std::thread;
 use std::time::Duration;
 
 pub mod utils {
-    use crate::LockPool;
     #[cfg(feature = "tokio")]
     use crate::pool::pool_async::AsyncLockPool;
+    use crate::LockPool;
     use std::sync::atomic::{AtomicU32, Ordering};
     use std::sync::{Arc, Mutex};
     use std::thread::{self, JoinHandle};
@@ -92,7 +92,7 @@ pub mod utils {
             let _guard = runtime.block_on(pool.lock_owned_async(key));
             counter.fetch_add(1, Ordering::SeqCst);
             if let Some(barrier) = barrier {
-                let _barrier = barrier.lock().unwrap(); 
+                let _barrier = barrier.lock().unwrap();
             }
         })
     }

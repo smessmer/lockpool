@@ -11,7 +11,7 @@ use crate::pool::LockPool;
 /// [TokioLockPool] is an implementation of [AsyncLockPool] (see [AsyncLockPool] for API details) and is based
 /// on top of [tokio::sync::Mutex]. This means the lock pool can be used in asynchronous code and its locks
 /// can be held across `await` points. It is a little slower than [SyncLockPool].
-/// 
+///
 /// This lock pool is only available if the `tokio` crate feature is enabled.
 ///
 /// This implementation can also be used in synchronous code since it also implements the [LockPool] API,
@@ -75,10 +75,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::{AsyncLockPool, TokioLockPool};
-    use crate::pool::tests::utils::{launch_locking_owned_async_thread, launch_locking_async_thread};
+    use crate::pool::tests::utils::{
+        launch_locking_async_thread, launch_locking_owned_async_thread,
+    };
     use crate::LockPool;
-    use std::sync::{Arc, Mutex};
     use std::sync::atomic::{AtomicU32, Ordering};
+    use std::sync::{Arc, Mutex};
     use std::thread;
     use std::time::Duration;
 
@@ -111,14 +113,18 @@ mod tests {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "Cannot start a runtime from within a runtime. This happens because a function (like `block_on`) attempted to block the current thread while the thread is being used to drive asynchronous tasks.")]
+    #[should_panic(
+        expected = "Cannot start a runtime from within a runtime. This happens because a function (like `block_on`) attempted to block the current thread while the thread is being used to drive asynchronous tasks."
+    )]
     async fn lock_from_async_context_with_sync_api() {
         let p = TokioLockPool::new();
         let _ = p.lock(3);
     }
 
     #[tokio::test]
-    #[should_panic(expected = "Cannot start a runtime from within a runtime. This happens because a function (like `block_on`) attempted to block the current thread while the thread is being used to drive asynchronous tasks.")]
+    #[should_panic(
+        expected = "Cannot start a runtime from within a runtime. This happens because a function (like `block_on`) attempted to block the current thread while the thread is being used to drive asynchronous tasks."
+    )]
     async fn lock_owned_from_async_context_with_sync_api() {
         let p = Arc::new(TokioLockPool::new());
         let _ = p.lock_owned(3);
@@ -133,7 +139,7 @@ mod tests {
         std::mem::drop(guard);
         assert_eq!(0, pool.num_locked_or_poisoned());
     }
-    
+
     #[tokio::test]
     async fn test_simple_lock_owned_unlock() {
         let pool = Arc::new(TokioLockPool::new());
@@ -143,7 +149,7 @@ mod tests {
         std::mem::drop(guard);
         assert_eq!(0, pool.num_locked_or_poisoned());
     }
-    
+
     #[tokio::test]
     async fn test_multi_lock_unlock() {
         let pool = TokioLockPool::new();
@@ -154,7 +160,7 @@ mod tests {
         assert_eq!(2, pool.num_locked_or_poisoned());
         let guard3 = pool.lock_async(3).await;
         assert_eq!(3, pool.num_locked_or_poisoned());
-    
+
         std::mem::drop(guard2);
         assert_eq!(2, pool.num_locked_or_poisoned());
         std::mem::drop(guard1);
@@ -162,7 +168,7 @@ mod tests {
         std::mem::drop(guard3);
         assert_eq!(0, pool.num_locked_or_poisoned());
     }
-    
+
     #[tokio::test]
     async fn test_multi_lock_owned_unlock() {
         let pool = Arc::new(TokioLockPool::new());
@@ -173,7 +179,7 @@ mod tests {
         assert_eq!(2, pool.num_locked_or_poisoned());
         let guard3 = pool.lock_owned_async(3).await;
         assert_eq!(3, pool.num_locked_or_poisoned());
-    
+
         std::mem::drop(guard2);
         assert_eq!(2, pool.num_locked_or_poisoned());
         std::mem::drop(guard1);
@@ -186,55 +192,55 @@ mod tests {
     async fn test_concurrent_lock() {
         let pool = Arc::new(TokioLockPool::new());
         let guard = pool.lock_async(5).await;
-    
+
         let counter = Arc::new(AtomicU32::new(0));
-    
+
         let child = launch_locking_async_thread(&pool, 5, &counter, None);
-    
+
         // Check that even if we wait, the child thread won't get the lock
         thread::sleep(Duration::from_millis(100));
         assert_eq!(0, counter.load(Ordering::SeqCst));
-    
+
         // Check that we can stil lock other locks while the child is waiting
         {
             let _g = pool.lock_async(4).await;
         }
-    
+
         // Now free the lock so the child can get it
         std::mem::drop(guard);
-    
+
         // And check that the child got it
         child.join().unwrap();
         assert_eq!(1, counter.load(Ordering::SeqCst));
-    
+
         assert_eq!(0, pool.num_locked_or_poisoned());
     }
-    
+
     #[tokio::test]
     async fn test_concurrent_lock_owned() {
         let pool = Arc::new(TokioLockPool::new());
         let guard = pool.lock_owned_async(5).await;
-    
+
         let counter = Arc::new(AtomicU32::new(0));
-    
+
         let child = launch_locking_owned_async_thread(&pool, 5, &counter, None);
-    
+
         // Check that even if we wait, the child thread won't get the lock
         thread::sleep(Duration::from_millis(100));
         assert_eq!(0, counter.load(Ordering::SeqCst));
-    
+
         // Check that we can stil lock other locks while the child is waiting
         {
             let _g = pool.lock_owned_async(4).await;
         }
-    
+
         // Now free the lock so the child can get it
         std::mem::drop(guard);
-    
+
         // And check that the child got it
         child.join().unwrap();
         assert_eq!(1, counter.load(Ordering::SeqCst));
-    
+
         assert_eq!(0, pool.num_locked_or_poisoned());
     }
 
@@ -242,80 +248,80 @@ mod tests {
     async fn test_multi_concurrent_lock() {
         let pool = Arc::new(TokioLockPool::new());
         let guard = pool.lock_async(5).await;
-    
+
         let counter = Arc::new(AtomicU32::new(0));
         let barrier = Arc::new(Mutex::new(()));
         let barrier_guard = barrier.lock().unwrap();
-    
+
         let child1 = launch_locking_async_thread(&pool, 5, &counter, Some(&barrier));
         let child2 = launch_locking_async_thread(&pool, 5, &counter, Some(&barrier));
-    
+
         // Check that even if we wait, the child thread won't get the lock
         thread::sleep(Duration::from_millis(100));
         assert_eq!(0, counter.load(Ordering::SeqCst));
-    
+
         // Check that we can stil lock other locks while the children are waiting
         {
             let _g = pool.lock_async(4).await;
         }
-    
+
         // Now free the lock so a child can get it
         std::mem::drop(guard);
-    
+
         // Check that a child got it
         thread::sleep(Duration::from_millis(100));
         assert_eq!(1, counter.load(Ordering::SeqCst));
-    
+
         // Allow the child to free the lock
         std::mem::drop(barrier_guard);
-    
+
         // Check that the other child got it
         child1.join().unwrap();
         child2.join().unwrap();
         assert_eq!(2, counter.load(Ordering::SeqCst));
-    
+
         assert_eq!(0, pool.num_locked_or_poisoned());
     }
-    
+
     #[tokio::test]
     async fn test_multi_concurrent_lock_owned() {
         let pool = Arc::new(TokioLockPool::new());
         let guard = pool.lock_owned_async(5).await;
-    
+
         let counter = Arc::new(AtomicU32::new(0));
         let barrier = Arc::new(Mutex::new(()));
         let barrier_guard = barrier.lock().unwrap();
-    
+
         let child1 = launch_locking_owned_async_thread(&pool, 5, &counter, Some(&barrier));
         let child2 = launch_locking_owned_async_thread(&pool, 5, &counter, Some(&barrier));
-    
+
         // Check that even if we wait, the child thread won't get the lock
         thread::sleep(Duration::from_millis(100));
         assert_eq!(0, counter.load(Ordering::SeqCst));
-    
+
         // Check that we can stil lock other locks while the children are waiting
         {
             let _g = pool.lock_owned_async(4).await;
         }
-    
+
         // Now free the lock so a child can get it
         std::mem::drop(guard);
-    
+
         // Check that a child got it
         thread::sleep(Duration::from_millis(100));
         assert_eq!(1, counter.load(Ordering::SeqCst));
-    
+
         // Allow the child to free the lock
         std::mem::drop(barrier_guard);
-    
+
         // Check that the other child got it
         child1.join().unwrap();
         child2.join().unwrap();
         assert_eq!(2, counter.load(Ordering::SeqCst));
-    
+
         assert_eq!(0, pool.num_locked_or_poisoned());
     }
-    
+
     #[tokio::test]
     async fn test_lock_owned_guards_can_be_passed_around() {
         let make_guard = || async {
