@@ -5,9 +5,23 @@ use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::Arc;
 
-use super::pool::{AsyncLockPool, LockPool};
+use crate::pool::LockPool;
 use crate::guard::Guard;
 
+/// [AsyncLockPool] is an implementation of [LockPool] (see [LockPool] for API details) that can be used
+/// in asynchronous code. It is a little slower than [SyncLockPool] but its locks can be held across
+/// `await` points.
+///
+/// [AsyncLockPool] is based on top of [tokio::sync::Mutex] and does not support poisoning of locks.
+/// See the [tokio::sync::Mutex] documentation for details on poisoning.
+///
+/// [AsyncLockPool] implements [LockPool] for when you want to lock in synchronous code. That API will
+/// panic if called from asynchronous code, see the documentation of [tokio::sync::Mutex::blocking_lock].
+/// For use in asynchronous code, [AsyncLockPool] also implements the [LockPoolAsync] API.
+#[cfg(feature = "tokio")]
+pub type AsyncLockPool<K> = super::LockPoolImpl<K, tokio::sync::Mutex<()>>;
+
+/// TODO
 #[async_trait]
 pub trait LockPoolAsync<K>: LockPool<K>
 where
@@ -54,4 +68,9 @@ where
             .await;
         Guard::new(this, key, guard, false)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    crate::instantiate_common_tests!(common, crate::AsyncLockPool<isize>);
 }
