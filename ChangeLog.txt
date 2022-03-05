@@ -2,7 +2,7 @@
 -----
 * Requires a nightly rust compiles since we're relying on generic associated types.
 * Add Arc<LockPool>::lock_owned and Arc<LockPool>::try_lock_owned to allow easier lifetime handling.
-* Rename `LockPool` to `SyncLockPool` and add `AsyncLockPool` for using LockPools in async code.
+* Rename `LockPool` to `SyncLockPool` and add `AsyncLockPool` with `AsyncLockPool::lock_async` and `AsyncLockPool::lock_owned_async` for using LockPools in async code.
 
 2.0.1
 -----
