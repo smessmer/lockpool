@@ -320,6 +320,7 @@ where
         let mut currently_locked = self._currently_locked();
         // TODO Alternative idea: Keep currently_locked locked so that no new threads can request locks, then wait until all
         // current threads have gotten and released their locks, then unpoison. This should get rid of the OtherThreadsBlockedOnMutex error case.
+        // Maybe that should become unpoison() and the current implementation should become try_unpoison() with an UnpoisonError::WouldBlock.
         let mutex: &Arc<M> = currently_locked
             .get(&key)
             .ok_or(UnpoisonError::NotPoisoned)?;
