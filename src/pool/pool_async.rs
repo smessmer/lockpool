@@ -5,7 +5,7 @@ use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::Arc;
 
-use crate::guard::Guard;
+use crate::guard::GuardImpl;
 use crate::pool::LockPool;
 
 /// [TokioLockPool] is an implementation of [AsyncLockPool] (see [AsyncLockPool] for API details) and is based
@@ -57,7 +57,7 @@ where
     async fn _lock_async<'a, S: 'a + Deref<Target = Self>>(
         this: S,
         key: K,
-    ) -> Guard<'a, K, tokio::sync::Mutex<()>, S> {
+    ) -> GuardImpl<'a, K, tokio::sync::Mutex<()>, S> {
         let mutex = this._load_or_insert_mutex_for_key(&key);
         // Now we have an Arc::clone of the mutex for this key, and the global mutex is already unlocked so other threads can access the hash map.
         // The following blocks until the mutex for this key is acquired.
@@ -68,7 +68,7 @@ where
                 mutex.lock()
             })
             .await;
-        Guard::new(this, key, guard, false)
+        GuardImpl::new(this, key, guard, false)
     }
 }
 

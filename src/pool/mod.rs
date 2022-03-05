@@ -7,7 +7,7 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::error::{PoisonError, TryLockError, UnpoisonError};
-use crate::guard::Guard;
+use crate::guard::{Guard, GuardImpl};
 use crate::mutex::{LockError, MutexImpl};
 
 /// A pool of locks where individual locks can be locked/unlocked by key.
@@ -59,7 +59,7 @@ where
     /// A handle to a held lock. The guard cannot be held across .await points.
     /// The guard internally borrows the [LockPool], so the [LockPool] will not be dropped while a guard exists.
     /// The lock is automatically released whenever the guard is dropped, at which point [LockPool::lock] or [LockPool::lock_owned] with the same key will succeed yet again.
-    type Guard<'a>: Debug
+    type Guard<'a>: Guard<K>
     where
         Self: 'a;
 
@@ -67,7 +67,7 @@ where
     /// This guard is only available from a [LockPool] that is wrapped in an [Arc]. It is identical to [LockPool::Guard], except that rather than borrowing the [LockPool], it clones the [Arc], incrementing the reference count.
     /// This means that unlike [LockPool::Guard], it will have the `'static` lifetime.
     /// The lock is automatically released whenever the guard is dropped, at which point [LockPool::lock] or [LockPool::lock_owned] with the same key will succeed yet again.
-    type OwnedGuard: Debug;
+    type OwnedGuard: Guard<K>;
 
     /// Create a new lock pool where no lock is locked
     #[inline]
@@ -282,8 +282,8 @@ where
     K: Eq + PartialEq + Hash + Clone + Debug + 'static,
     M: MutexImpl + 'static,
 {
-    type Guard<'a> = Guard<'a, K, M, &'a Self>;
-    type OwnedGuard = Guard<'static, K, M, Arc<LockPoolImpl<K, M>>>;
+    type Guard<'a> = GuardImpl<'a, K, M, &'a Self>;
+    type OwnedGuard = GuardImpl<'static, K, M, Arc<LockPoolImpl<K, M>>>;
 
     #[inline]
     fn num_locked_or_poisoned(&self) -> usize {
@@ -376,7 +376,7 @@ where
     fn _lock<'a, S: 'a + Deref<Target = Self>>(
         this: S,
         key: K,
-    ) -> Result<Guard<'a, K, M, S>, PoisonError<K, Guard<'a, K, M, S>>> {
+    ) -> Result<GuardImpl<'a, K, M, S>, PoisonError<K, GuardImpl<'a, K, M, S>>> {
         let mutex = this._load_or_insert_mutex_for_key(&key);
         // Now we have an Arc::clone of the mutex for this key, and the global mutex is already unlocked so other threads can access the hash map.
         // The following blocks until the mutex for this key is acquired.
@@ -393,10 +393,10 @@ where
             }
         });
         if poisoned {
-            let guard = Guard::new(this, key.clone(), guard, true);
+            let guard = GuardImpl::new(this, key.clone(), guard, true);
             Err(PoisonError { key, guard })
         } else {
-            let guard = Guard::new(this, key, guard, false);
+            let guard = GuardImpl::new(this, key, guard, false);
             Ok(guard)
         }
     }
@@ -404,7 +404,7 @@ where
     fn _try_lock<'a, S: 'a + Deref<Target = Self>>(
         this: S,
         key: K,
-    ) -> Result<Guard<'a, K, M, S>, TryLockError<K, Guard<'a, K, M, S>>> {
+    ) -> Result<GuardImpl<'a, K, M, S>, TryLockError<K, GuardImpl<'a, K, M, S>>> {
         let mutex = this._load_or_insert_mutex_for_key(&key);
         // Now we have an Arc::clone of the mutex for this key, and the global mutex is already unlocked so other threads can access the hash map.
         // The following tries to lock the mutex.
@@ -422,10 +422,10 @@ where
             }
         })?;
         if poisoned {
-            let guard = Guard::new(this, key.clone(), guard, true);
+            let guard = GuardImpl::new(this, key.clone(), guard, true);
             Err(TryLockError::Poisoned(PoisonError { key, guard }))
         } else {
-            let guard = Guard::new(this, key, guard, false);
+            let guard = GuardImpl::new(this, key, guard, false);
             Ok(guard)
         }
     }

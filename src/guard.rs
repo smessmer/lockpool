@@ -8,8 +8,16 @@ use super::mutex::MutexImpl;
 use crate::pool::LockPoolImpl;
 
 /// A RAII implementation of a scoped lock for locks from a [LockPool]. When this instance is dropped (falls out of scope), the lock will be unlocked.
+pub trait Guard<K>: Debug
+where
+    K: Eq + PartialEq + Hash + Clone + Debug,
+{
+    /// Returns the key locked by this guard
+    fn key(&self) -> &K;
+}
+
 #[must_use = "if unused the Mutex will immediately unlock"]
-pub struct Guard<'a, K, M, P>
+pub struct GuardImpl<'a, K, M, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
     M: MutexImpl + 'a,
@@ -21,7 +29,7 @@ where
     poisoned: bool,
 }
 
-impl<'a, K, M, P> Guard<'a, K, M, P>
+impl<'a, K, M, P> GuardImpl<'a, K, M, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
     M: MutexImpl + 'a,
@@ -42,7 +50,20 @@ where
     }
 }
 
-impl<'a, K, M, P> Drop for Guard<'a, K, M, P>
+impl<'a, K, M, P> Guard<K> for GuardImpl<'a, K, M, P>
+where
+    K: Eq + PartialEq + Hash + Clone + Debug,
+    M: MutexImpl + 'a,
+    P: Deref<Target = LockPoolImpl<K, M>>,
+{
+    /// TODO Test
+    #[inline]
+    fn key(&self) -> &K {
+        &self.key
+    }
+}
+
+impl<'a, K, M, P> Drop for GuardImpl<'a, K, M, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
     M: MutexImpl + 'a,
@@ -57,13 +78,13 @@ where
     }
 }
 
-impl<'a, K, M, P> Debug for Guard<'a, K, M, P>
+impl<'a, K, M, P> Debug for GuardImpl<'a, K, M, P>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
     M: MutexImpl + 'a,
     P: Deref<Target = LockPoolImpl<K, M>>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Guard({:?})", self.key)
+        write!(f, "GuardImpl({:?})", self.key)
     }
 }
