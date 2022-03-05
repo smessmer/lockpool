@@ -5,7 +5,7 @@
 ///
 /// [SyncLockPool] is based on top of [std::sync::Mutex] and supports poisoning of locks.
 /// See the [std::sync::Mutex] documentation for details on poisoning.
-pub type SyncLockPool<K> = super::LockPoolImpl<K, std::sync::Mutex<()>>;
+pub type SyncLockPool<K, V = ()> = super::LockPoolImpl<K, std::sync::Mutex<V>>;
 
 #[cfg(test)]
 mod tests {
@@ -39,7 +39,7 @@ mod tests {
 
     #[test]
     fn test_pool_mutex_poisoned_by_lock() {
-        let pool = Arc::new(SyncLockPool::new());
+        let pool = Arc::new(SyncLockPool::<_>::new());
 
         poison_lock(&pool, 3);
 
@@ -87,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_pool_mutex_poisoned_by_lock_owned() {
-        let pool = Arc::new(SyncLockPool::new());
+        let pool = Arc::new(SyncLockPool::<_>::new());
 
         poison_lock_owned(&pool, 3);
 
@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn test_pool_mutex_poisoned_by_try_lock() {
-        let pool = Arc::new(SyncLockPool::new());
+        let pool = Arc::new(SyncLockPool::<_>::new());
 
         poison_try_lock(&pool, 3);
 
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_pool_mutex_poisoned_by_try_lock_owned() {
-        let pool = Arc::new(SyncLockPool::new());
+        let pool = Arc::new(SyncLockPool::<_>::new());
 
         poison_try_lock_owned(&pool, 3);
 
@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_poison_error_holds_lock() {
-        let pool = Arc::new(SyncLockPool::new());
+        let pool = Arc::new(SyncLockPool::<_>::new());
         poison_lock(&pool, 5);
         let error = pool.lock(5).unwrap_err();
         assert_is_lock_poisoned_error(5, &error);
@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_poison_error_holds_lock_owned() {
-        let pool = Arc::new(SyncLockPool::new());
+        let pool = Arc::new(SyncLockPool::<_>::new());
         poison_lock_owned(&pool, 5);
         let error = pool.lock_owned(5).unwrap_err();
         assert_is_lock_poisoned_error(5, &error);
@@ -283,7 +283,7 @@ mod tests {
 
     #[test]
     fn test_poison_error_holds_try_lock() {
-        let pool = Arc::new(SyncLockPool::new());
+        let pool = Arc::new(SyncLockPool::<_>::new());
         poison_lock(&pool, 5);
         let error = pool.lock(5).unwrap_err();
         assert_is_lock_poisoned_error(5, &error);
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn test_poison_error_holds_try_lock_owned() {
-        let pool = Arc::new(SyncLockPool::new());
+        let pool = Arc::new(SyncLockPool::<_>::new());
         poison_lock_owned(&pool, 5);
         let error = pool.lock_owned(5).unwrap_err();
         assert_is_lock_poisoned_error(5, &error);
@@ -325,7 +325,7 @@ mod tests {
 
     #[test]
     fn test_unpoison() {
-        let pool = Arc::new(SyncLockPool::new());
+        let pool = Arc::new(SyncLockPool::<_>::new());
 
         poison_lock(&pool, 3);
 
@@ -354,7 +354,7 @@ mod tests {
 
     #[test]
     fn test_unpoison_not_poisoned() {
-        let pool = Arc::new(SyncLockPool::new());
+        let pool = Arc::new(SyncLockPool::<_>::new());
 
         let err = pool.unpoison(3).unwrap_err();
         assert_eq!(UnpoisonError::NotPoisoned, err);
@@ -362,7 +362,7 @@ mod tests {
 
     #[test]
     fn test_unpoison_while_other_thread_waiting() {
-        let pool = Arc::new(SyncLockPool::new());
+        let pool = Arc::new(SyncLockPool::<_>::new());
 
         poison_lock(&pool, 3);
 

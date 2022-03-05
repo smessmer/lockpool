@@ -5,7 +5,7 @@
 //! ```
 //! use lockpool::{LockPool, SyncLockPool};
 //!
-//! let pool = SyncLockPool::new();
+//! let pool = SyncLockPool::<_>::new();
 //! # (|| -> Result<(), lockpool::PoisonError<_, _>> {
 //! let guard1 = pool.lock(4)?;
 //! let guard2 = pool.lock(5)?;
@@ -28,7 +28,7 @@
 //! #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 //! struct CustomLockKey(u32);
 //!
-//! let pool = SyncLockPool::new();
+//! let pool = SyncLockPool::<_>::new();
 //! # (|| -> Result<(), lockpool::PoisonError<_, _>> {
 //! let guard = pool.lock(CustomLockKey(4))?;
 //! # Ok(())
@@ -55,3 +55,5 @@ pub use guard::Guard;
 
 #[cfg(feature = "tokio")]
 pub use pool::pool_async::{AsyncLockPool, TokioLockPool};
+
+// TODO Test pools with values

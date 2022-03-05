@@ -21,7 +21,7 @@ use crate::mutex::{LockError, MutexImpl};
 /// ```
 /// use lockpool::{LockPool, SyncLockPool};
 ///
-/// let pool = SyncLockPool::new();
+/// let pool = SyncLockPool::<_>::new();
 /// # (|| -> Result<(), lockpool::PoisonError<_, _>> {
 /// let guard1 = pool.lock(4)?;
 /// let guard2 = pool.lock(5)?;
@@ -44,7 +44,7 @@ use crate::mutex::{LockError, MutexImpl};
 /// #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 /// struct CustomLockKey(u32);
 ///
-/// let pool = SyncLockPool::new();
+/// let pool = SyncLockPool::<_>::new();
 /// # (|| -> Result<(), lockpool::PoisonError<_, _>> {
 /// let guard = pool.lock(CustomLockKey(4))?;
 /// # Ok(())
@@ -104,7 +104,7 @@ where
     /// ```
     /// use lockpool::{LockPool, SyncLockPool};
     ///
-    /// let pool = SyncLockPool::new();
+    /// let pool = SyncLockPool::<_>::new();
     /// # (|| -> Result<(), lockpool::PoisonError<_, _>> {
     /// let guard1 = pool.lock(4)?;
     /// let guard2 = pool.lock(5)?;
@@ -142,7 +142,7 @@ where
     /// use lockpool::{LockPool, SyncLockPool};
     /// use std::sync::Arc;
     ///
-    /// let pool = Arc::new(SyncLockPool::new());
+    /// let pool = Arc::new(SyncLockPool::<_>::new());
     /// # (|| -> Result<(), lockpool::PoisonError<_, _>> {
     /// let guard1 = pool.lock_owned(4)?;
     /// let guard2 = pool.lock_owned(5)?;
@@ -178,7 +178,7 @@ where
     /// ```
     /// use lockpool::{TryLockError, LockPool, SyncLockPool};
     ///
-    /// let pool = SyncLockPool::new();
+    /// let pool: SyncLockPool<isize> = SyncLockPool::new();
     /// # (|| -> Result<(), lockpool::PoisonError<_, _>> {
     /// let guard1 = pool.lock(4)?;
     /// let guard2 = pool.lock(5)?;
@@ -214,7 +214,7 @@ where
     /// use lockpool::{TryLockError, LockPool, SyncLockPool};
     /// use std::sync::Arc;
     ///
-    /// let pool = Arc::new(SyncLockPool::new());
+    /// let pool = Arc::new(SyncLockPool::<_>::new());
     /// # (|| -> Result<(), lockpool::PoisonError<_, _>> {
     /// let guard1 = pool.lock(4)?;
     /// let guard2 = pool.lock(5)?;

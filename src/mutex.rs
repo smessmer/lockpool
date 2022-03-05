@@ -3,16 +3,22 @@ pub trait LockError<'a> {
     fn into_inner(self) -> Self::Guard;
 }
 
-impl<'a> LockError<'a> for std::sync::PoisonError<std::sync::MutexGuard<'a, ()>> {
-    type Guard = std::sync::MutexGuard<'a, ()>;
+impl<'a, T> LockError<'a> for std::sync::PoisonError<std::sync::MutexGuard<'a, T>> {
+    type Guard = std::sync::MutexGuard<'a, T>;
     fn into_inner(self) -> Self::Guard {
         std::sync::PoisonError::into_inner(self)
     }
 }
 
 #[cfg(feature = "tokio")]
-impl<'a> LockError<'a> for ! {
-    type Guard = tokio::sync::MutexGuard<'a, ()>;
+pub struct Never<T>{
+    _p: std::marker::PhantomData<T>,
+    _n: !,
+}
+
+#[cfg(feature = "tokio")]
+impl<'a, T: 'a> LockError<'a> for Never<T> {
+    type Guard = tokio::sync::MutexGuard<'a, T>;
     fn into_inner(self) -> Self::Guard {
         panic!("This can't happen since it requires an instance of the never type");
     }
@@ -33,14 +39,14 @@ pub trait MutexImpl {
     fn try_lock(&self) -> Result<Self::Guard<'_>, std::sync::TryLockError<Self::Guard<'_>>>;
 }
 
-impl MutexImpl for std::sync::Mutex<()> {
-    type Guard<'a> = std::sync::MutexGuard<'a, ()>;
-    type LockError<'a> = std::sync::PoisonError<Self::Guard<'a>>;
+impl <T: Default> MutexImpl for std::sync::Mutex<T> {
+    type Guard<'a> where T: 'a = std::sync::MutexGuard<'a, T>;
+    type LockError<'a> where T: 'a = std::sync::PoisonError<Self::Guard<'a>>;
 
     const SUPPORTS_POISONING: bool = true;
 
     fn new() -> Self {
-        std::sync::Mutex::new(())
+        std::sync::Mutex::new(T::default())
     }
 
     fn lock(&self) -> Result<Self::Guard<'_>, Self::LockError<'_>> {
@@ -53,14 +59,14 @@ impl MutexImpl for std::sync::Mutex<()> {
 }
 
 #[cfg(feature = "tokio")]
-impl MutexImpl for tokio::sync::Mutex<()> {
-    type Guard<'a> = tokio::sync::MutexGuard<'a, ()>;
-    type LockError<'a> = !;
+impl <T: Default> MutexImpl for tokio::sync::Mutex<T> {
+    type Guard<'a> where T: 'a = tokio::sync::MutexGuard<'a, T>;
+    type LockError<'a> where T: 'a = Never<T>;
 
     const SUPPORTS_POISONING: bool = false;
 
     fn new() -> Self {
-        tokio::sync::Mutex::new(())
+        tokio::sync::Mutex::new(T::default())
     }
 
     fn lock(&self) -> Result<Self::Guard<'_>, Self::LockError<'_>> {

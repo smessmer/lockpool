@@ -21,7 +21,7 @@ use crate::pool::LockPool;
 /// [TokioLockPool] is based on top of [tokio::sync::Mutex] and does not support poisoning of locks.
 /// See the [tokio::sync::Mutex] documentation for details on poisoning.
 #[cfg(feature = "tokio")]
-pub type TokioLockPool<K> = super::LockPoolImpl<K, tokio::sync::Mutex<()>>;
+pub type TokioLockPool<K, V = ()> = super::LockPoolImpl<K, tokio::sync::Mutex<V>>;
 
 /// TODO
 #[async_trait]
@@ -101,14 +101,14 @@ mod tests {
     #[test]
     #[should_panic(expected = "This lock pool doesn't support poisoning")]
     fn test_unpoison_not_poisoned() {
-        let p = TokioLockPool::new();
+        let p = TokioLockPool::<_>::new();
         let _ = p.unpoison(2);
     }
 
     #[test]
     #[should_panic(expected = "This lock pool doesn't support poisoning")]
     fn test_unpoison_poisoned() {
-        let p = Arc::new(TokioLockPool::new());
+        let p = Arc::new(TokioLockPool::<_>::new());
         poison_lock(&p, 2);
 
         let _ = p.unpoison(2);
@@ -119,7 +119,7 @@ mod tests {
         expected = "Cannot start a runtime from within a runtime. This happens because a function (like `block_on`) attempted to block the current thread while the thread is being used to drive asynchronous tasks."
     )]
     async fn lock_from_async_context_with_sync_api() {
-        let p = TokioLockPool::new();
+        let p = TokioLockPool::<_>::new();
         let _ = p.lock(3);
     }
 
@@ -128,13 +128,13 @@ mod tests {
         expected = "Cannot start a runtime from within a runtime. This happens because a function (like `block_on`) attempted to block the current thread while the thread is being used to drive asynchronous tasks."
     )]
     async fn lock_owned_from_async_context_with_sync_api() {
-        let p = Arc::new(TokioLockPool::new());
+        let p = Arc::new(TokioLockPool::<_>::new());
         let _ = p.lock_owned(3);
     }
 
     #[tokio::test]
     async fn test_simple_lock_unlock() {
-        let pool = TokioLockPool::new();
+        let pool = TokioLockPool::<_>::new();
         assert_eq!(0, pool.num_locked_or_poisoned());
         let guard = pool.lock_async(4).await;
         assert_eq!(1, pool.num_locked_or_poisoned());
@@ -144,7 +144,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_simple_lock_owned_unlock() {
-        let pool = Arc::new(TokioLockPool::new());
+        let pool = Arc::new(TokioLockPool::<_>::new());
         assert_eq!(0, pool.num_locked_or_poisoned());
         let guard = pool.lock_owned_async(4).await;
         assert_eq!(1, pool.num_locked_or_poisoned());
@@ -154,7 +154,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_multi_lock_unlock() {
-        let pool = TokioLockPool::new();
+        let pool = TokioLockPool::<_>::new();
         assert_eq!(0, pool.num_locked_or_poisoned());
         let guard1 = pool.lock_async(1).await;
         assert_eq!(1, pool.num_locked_or_poisoned());
@@ -173,7 +173,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_multi_lock_owned_unlock() {
-        let pool = Arc::new(TokioLockPool::new());
+        let pool = Arc::new(TokioLockPool::<_>::new());
         assert_eq!(0, pool.num_locked_or_poisoned());
         let guard1 = pool.lock_owned_async(1).await;
         assert_eq!(1, pool.num_locked_or_poisoned());
@@ -192,7 +192,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_concurrent_lock() {
-        let pool = Arc::new(TokioLockPool::new());
+        let pool = Arc::new(TokioLockPool::<_>::new());
         let guard = pool.lock_async(5).await;
 
         let counter = Arc::new(AtomicU32::new(0));
@@ -220,7 +220,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_concurrent_lock_owned() {
-        let pool = Arc::new(TokioLockPool::new());
+        let pool = Arc::new(TokioLockPool::<_>::new());
         let guard = pool.lock_owned_async(5).await;
 
         let counter = Arc::new(AtomicU32::new(0));
@@ -248,7 +248,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_multi_concurrent_lock() {
-        let pool = Arc::new(TokioLockPool::new());
+        let pool = Arc::new(TokioLockPool::<_>::new());
         let guard = pool.lock_async(5).await;
 
         let counter = Arc::new(AtomicU32::new(0));
@@ -287,7 +287,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_multi_concurrent_lock_owned() {
-        let pool = Arc::new(TokioLockPool::new());
+        let pool = Arc::new(TokioLockPool::<_>::new());
         let guard = pool.lock_owned_async(5).await;
 
         let counter = Arc::new(AtomicU32::new(0));
@@ -327,7 +327,7 @@ mod tests {
     #[tokio::test]
     async fn test_lock_owned_guards_can_be_passed_around() {
         let make_guard = || async {
-            let pool = Arc::new(TokioLockPool::new());
+            let pool = Arc::new(TokioLockPool::<_>::new());
             pool.lock_owned_async(5).await
         };
         let _guard = make_guard().await;
@@ -336,7 +336,7 @@ mod tests {
     #[tokio::test]
     async fn test_lock_guards_can_be_held_across_await_points() {
         let task = async {
-            let pool = TokioLockPool::new();
+            let pool = TokioLockPool::<_>::new();
             let guard = pool.lock_async(3).await;
             tokio::time::sleep(Duration::from_millis(10)).await;
             std::mem::drop(guard);
@@ -354,7 +354,7 @@ mod tests {
     #[tokio::test]
     async fn test_lock_owned_guards_can_be_held_across_await_points() {
         let task = async {
-            let pool = Arc::new(TokioLockPool::new());
+            let pool = Arc::new(TokioLockPool::<_>::new());
             let guard = pool.lock_owned_async(3).await;
             tokio::time::sleep(Duration::from_millis(10)).await;
             std::mem::drop(guard);
