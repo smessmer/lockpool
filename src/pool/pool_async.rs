@@ -11,6 +11,8 @@ use crate::pool::LockPool;
 /// [TokioLockPool] is an implementation of [AsyncLockPool] (see [AsyncLockPool] for API details) and is based
 /// on top of [tokio::sync::Mutex]. This means the lock pool can be used in asynchronous code and its locks
 /// can be held across `await` points. It is a little slower than [SyncLockPool].
+/// 
+/// This lock pool is only available if the `tokio` crate feature is enabled.
 ///
 /// This implementation can also be used in synchronous code since it also implements the [LockPool] API,
 /// but it will panic if you call [LockPool::lock] or [LockPool::lock_owned] from an `async` context,
