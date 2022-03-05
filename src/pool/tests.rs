@@ -1,4 +1,4 @@
-//! This module contains some test cases that are common between [SyncLockPool] and [AsyncLockPool]
+//! This module contains some test cases that are common between [SyncLockPool] and [TokioLockPool]
 
 use super::LockPool;
 use crate::TryLockError;
@@ -10,7 +10,7 @@ use std::time::Duration;
 pub mod utils {
     use crate::LockPool;
     #[cfg(feature = "tokio")]
-    use crate::pool::pool_async::LockPoolAsync;
+    use crate::pool::pool_async::AsyncLockPool;
     use std::sync::atomic::{AtomicU32, Ordering};
     use std::sync::{Arc, Mutex};
     use std::thread::{self, JoinHandle};
@@ -39,7 +39,7 @@ pub mod utils {
     }
 
     #[cfg(feature = "tokio")]
-    pub fn launch_locking_async_thread<P: LockPoolAsync<isize> + Send + Sync + 'static>(
+    pub fn launch_locking_async_thread<P: AsyncLockPool<isize> + Send + Sync + 'static>(
         pool: &Arc<P>,
         key: isize,
         counter: &Arc<AtomicU32>,
@@ -78,7 +78,7 @@ pub mod utils {
     }
 
     #[cfg(feature = "tokio")]
-    pub fn launch_locking_owned_async_thread<P: LockPoolAsync<isize> + Send + Sync + 'static>(
+    pub fn launch_locking_owned_async_thread<P: AsyncLockPool<isize> + Send + Sync + 'static>(
         pool: &Arc<P>,
         key: isize,
         counter: &Arc<AtomicU32>,
@@ -92,7 +92,7 @@ pub mod utils {
             let _guard = runtime.block_on(pool.lock_owned_async(key));
             counter.fetch_add(1, Ordering::SeqCst);
             if let Some(barrier) = barrier {
-                let _barrier = barrier.lock().unwrap();
+                let _barrier = barrier.lock().unwrap(); 
             }
         })
     }
@@ -460,7 +460,7 @@ macro_rules! instantiate_common_tests {
     ($type_name: ident, $lock_pool:ty) => {
         mod $type_name {
             // TODO There's still lots of duplication between the normal and the _owned tests.
-            //      Can we deduplicate this similar to how we deduplicated AsyncLockPool vs SyncLockPool tests with a macro here?
+            //      Can we deduplicate this similar to how we deduplicated TokioLockPool vs SyncLockPool tests with a macro here?
             $crate::instantiate_common_tests!(@impl, $lock_pool, test_simple_lock_unlock);
             $crate::instantiate_common_tests!(@impl, $lock_pool, test_simple_lock_owned_unlock);
             $crate::instantiate_common_tests!(@impl, $lock_pool, test_simple_try_lock_unlock);

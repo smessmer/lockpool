@@ -14,8 +14,8 @@ use crate::mutex::{LockError, MutexImpl};
 /// It initially considers all keys as "unlocked", but they can be locked
 /// and if a second thread tries to acquire a lock for the same key, they will have to wait.
 ///
-/// This trait is implemented by [AsyncLockPool] and [SyncLockPool]. [SyncLockPool] is a little faster
-/// but its locks cannot be held across `await` points in asynchronous code. [AsyncLockPool] can
+/// This trait is implemented by [TokioLockPool] and [SyncLockPool]. [SyncLockPool] is a little faster
+/// but its locks cannot be held across `await` points in asynchronous code. [TokioLockPool] can
 /// be used in both synchronous and asynchronous code and offers methods for each.
 ///
 /// ```
@@ -96,8 +96,8 @@ where
     /// Panics
     /// -----
     /// - This function might panic when called if the lock is already held by the current thread.
-    /// - If this is called through [AsyncLockPool], then this function will also panic when called from an `async` context.
-    ///   See documentation of [AsyncLockPool] for details.
+    /// - If this is called through [TokioLockPool], then this function will also panic when called from an `async` context.
+    ///   See documentation of [TokioLockPool] for details.
     ///
     /// Examples
     /// -----
@@ -133,8 +133,8 @@ where
     /// Panics
     /// -----
     /// - This function might panic when called if the lock is already held by the current thread.
-    /// - If this is called through [AsyncLockPool], then this function will also panic when called from an `async` context.
-    ///   See documentation of [AsyncLockPool] for details.
+    /// - If this is called through [TokioLockPool], then this function will also panic when called from an `async` context.
+    ///   See documentation of [TokioLockPool] for details.
     ///
     /// Examples
     /// -----
@@ -249,7 +249,7 @@ where
     fn unpoison(&self, key: K) -> Result<(), UnpoisonError>;
 }
 
-/// This struct implements both [SyncLockPool] and [AsyncLockPool]. See [LockPool] for the API.
+/// This struct implements both [SyncLockPool] and [TokioLockPool]. See [LockPool] for the API.
 pub struct LockPoolImpl<K, M>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
