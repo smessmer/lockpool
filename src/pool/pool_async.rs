@@ -84,6 +84,8 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
+    // TODO Add tests checking that the lock_async, lock_owned, lock methods all block each other. For lock and lock_owned that can probably go into common tests.rs
+
     crate::instantiate_common_tests!(common, super::TokioLockPool<isize>);
 
     fn poison_lock<P: LockPool<isize> + Send + Sync + 'static>(pool: &Arc<P>, key: isize) {
