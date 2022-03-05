@@ -40,6 +40,8 @@ let guard = pool.lock(CustomLockKey(4))?;
 
 Under the hood, a [LockPool] is a [HashMap](std::collections::HashMap) of [Mutex](std::sync::Mutex)es, with some logic making sure there aren't any race conditions when accessing the hash map.
 
+If the `tokio` feature is enabled, then this crate also offers [TokioLockPool] which allows locks to be held across `await` points.
+
 License: MIT OR Apache-2.0
 
 [Eq]: https://doc.rust-lang.org/std/cmp/trait.Eq.html
