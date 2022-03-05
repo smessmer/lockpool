@@ -72,7 +72,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::AsyncLockPool;
+    use super::{LockPoolAsync, AsyncLockPool};
     use crate::LockPool;
     use std::sync::Arc;
     use std::thread;
@@ -99,13 +99,25 @@ mod tests {
     #[test]
     #[should_panic(expected = "This lock pool doesn't support poisoning")]
     fn test_unpoison_poisoned() {
-        let p = Arc::new(crate::AsyncLockPool::new());
+        let p = Arc::new(AsyncLockPool::new());
         poison_lock(&p, 2);
 
         let _ = p.unpoison(2);
     }
 
+    #[tokio::test]
+    #[should_panic(expected = "Cannot start a runtime from within a runtime. This happens because a function (like `block_on`) attempted to block the current thread while the thread is being used to drive asynchronous tasks.")]
+    async fn lock_from_async_context_with_sync_api() {
+        let p = AsyncLockPool::new();
+        let _ = p.lock(3);
+    }
+
+    #[tokio::test]
+    #[should_panic(expected = "Cannot start a runtime from within a runtime. This happens because a function (like `block_on`) attempted to block the current thread while the thread is being used to drive asynchronous tasks.")]
+    async fn lock_owned_from_async_context_with_sync_api() {
+        let p = Arc::new(AsyncLockPool::new());
+        let _ = p.lock_owned(3);
+    }
+
     // TODO Test LockPoolAsync API
-    // TODO Test that sync API panics when called from async context
-    //       - and make sure that that's correctly documented
 }
