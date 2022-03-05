@@ -24,7 +24,7 @@ async-trait = {version = "^0.1.52", optional = true}
 [dev-dependencies]
 criterion = "^0.3.5"
 crossbeam-utils = "^0.8.7"
-tokio = {version = "^1.17.0", features = ["sync", "macros", "rt-multi-thread"]}
+tokio = {version = "^1.17.0", features = ["sync", "time", "macros", "rt-multi-thread"]}
 
 [features]
 tokio = ["dep:tokio", "dep:async-trait"]

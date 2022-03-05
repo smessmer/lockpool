@@ -80,8 +80,6 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
-    // TODO Test that locks can be held across await points
-
     crate::instantiate_common_tests!(common, super::AsyncLockPool<isize>);
 
     fn poison_lock<P: LockPool<isize> + Send + Sync + 'static>(pool: &Arc<P>, key: isize) {
@@ -323,5 +321,41 @@ mod tests {
             pool.lock_owned_async(5).await
         };
         let _guard = make_guard().await;
+    }
+
+    #[tokio::test]
+    async fn test_lock_guards_can_be_held_across_await_points() {
+        let task = async {
+            let pool = AsyncLockPool::new();
+            let guard = pool.lock_async(3).await;
+            tokio::time::sleep(Duration::from_millis(10)).await;
+            std::mem::drop(guard);
+        };
+
+        // We also need to move the task to a different thread because
+        // SyncLockPool **can** be used across an await but the task
+        // isn't Send and cannot be moved to a differen thread.
+        thread::spawn(move || {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(task);
+        });
+    }
+
+    #[tokio::test]
+    async fn test_lock_owned_guards_can_be_held_across_await_points() {
+        let task = async {
+            let pool = Arc::new(AsyncLockPool::new());
+            let guard = pool.lock_owned_async(3).await;
+            tokio::time::sleep(Duration::from_millis(10)).await;
+            std::mem::drop(guard);
+        };
+
+        // We also need to move the task to a different thread because
+        // SyncLockPool **can** be used across an await but the task
+        // isn't Send and cannot be moved to a differen thread.
+        thread::spawn(move || {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(task);
+        });
     }
 }
