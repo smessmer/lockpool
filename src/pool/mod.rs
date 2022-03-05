@@ -139,8 +139,9 @@ where
     /// -----
     /// ```
     /// use lockpool::{LockPool, SyncLockPool};
+    /// use std::sync::Arc;
     ///
-    /// let pool = SyncLockPool::new();
+    /// let pool = Arc::new(SyncLockPool::new());
     /// # (|| -> Result<(), lockpool::PoisonError<_, _>> {
     /// let guard1 = pool.lock_owned(4)?;
     /// let guard2 = pool.lock_owned(5)?;
@@ -198,6 +199,35 @@ where
     /// This is similar to [LockPool::try_lock], but it works on an `Arc<LockPool>` instead of a [LockPool] and
     /// returns a [Guard] that binds its lifetime to the [LockPool] in that [Arc]. Such a [Guard] can be more
     /// easily moved around or cloned.
+    /// 
+    /// This function does not block.
+    ///
+    /// Errors
+    /// -----
+    /// - If another user of this lock panicked while holding the lock, then this call will return [TryLockError::Poisoned].
+    /// - If the lock could not be acquired because it is already locked, then this call will return [TryLockError::WouldBlock].
+    ///
+    /// Examples
+    /// -----
+    /// ```
+    /// use lockpool::{TryLockError, LockPool, SyncLockPool};
+    /// use std::sync::Arc;
+    ///
+    /// let pool = Arc::new(SyncLockPool::new());
+    /// # (|| -> Result<(), lockpool::PoisonError<_, _>> {
+    /// let guard1 = pool.lock(4)?;
+    /// let guard2 = pool.lock(5)?;
+    ///
+    /// // This next line would cause a deadlock or panic because `4` is already locked on this thread
+    /// let guard3 = pool.try_lock_owned(4);
+    /// assert!(matches!(guard3.unwrap_err(), TryLockError::WouldBlock));
+    ///
+    /// // After dropping the corresponding guard, we can lock it again
+    /// std::mem::drop(guard1);
+    /// let guard3 = pool.lock(4)?;
+    /// # Ok(())
+    /// # })().unwrap();
+    /// ```
     fn try_lock_owned(
         self: &Arc<Self>,
         key: K,
