@@ -7,8 +7,6 @@ use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-// TODO Add a test that makes sure that lock_owned() actually returns 'static, i.e. that we can move it around without caring about lifetimes. And make sure that the same test doesn't compile with lock().
-
 pub fn test_simple_lock_unlock<P: LockPool<isize>>() {
     let pool = P::new();
     assert_eq!(0, pool.num_locked_or_poisoned());
@@ -335,6 +333,23 @@ pub fn test_multi_concurrent_lock_owned<P: LockPool<isize> + Send + Sync + 'stat
     assert_eq!(0, pool.num_locked_or_poisoned());
 }
 
+pub fn test_lock_owned_guards_can_be_passed_around<P: LockPool<isize> + Send + Sync + 'static>() {
+    let make_guard = || {
+        let pool = Arc::new(P::new());
+        pool.lock_owned(5)
+    };
+    let _guard = make_guard();
+}
+
+pub fn test_try_lock_owned_guards_can_be_passed_around<P: LockPool<isize> + Send + Sync + 'static>() {
+    let make_guard = || {
+        let pool = Arc::new(P::new());
+        pool.try_lock_owned(5)
+    };
+    let guard = make_guard();
+    assert!(guard.is_ok());
+}
+
 #[macro_export]
 macro_rules! instantiate_common_tests {
     (@impl, $lock_pool:ty, $test_name:ident) => {
@@ -361,6 +376,8 @@ macro_rules! instantiate_common_tests {
             $crate::instantiate_common_tests!(@impl, $lock_pool, test_concurrent_try_lock_owned);
             $crate::instantiate_common_tests!(@impl, $lock_pool, test_multi_concurrent_lock);
             $crate::instantiate_common_tests!(@impl, $lock_pool, test_multi_concurrent_lock_owned);
+            $crate::instantiate_common_tests!(@impl, $lock_pool, test_lock_owned_guards_can_be_passed_around);
+            $crate::instantiate_common_tests!(@impl, $lock_pool, test_try_lock_owned_guards_can_be_passed_around);
         }
     };
 }

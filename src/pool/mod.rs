@@ -275,6 +275,7 @@ where
 
 impl<K, M> LockPool<K> for LockPoolImpl<K, M>
 where
+    // TODO Can we remove the 'static bound from K?
     K: Eq + PartialEq + Hash + Clone + Debug + 'static,
     M: MutexImpl + 'static,
 {
