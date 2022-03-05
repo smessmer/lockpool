@@ -255,6 +255,9 @@ where
     K: Eq + PartialEq + Hash + Clone + Debug,
     M: MutexImpl,
 {
+    // We always use std::sync::Mutex for protecting the HashMap since its guards
+    // never have to be kept across await boundaries, but the inner per-key locks
+    // can be different types of mutexes, determined by the `M` type parameter.
     currently_locked: Mutex<HashMap<K, Arc<M>>>,
     _p: PhantomData<M>,
 }
