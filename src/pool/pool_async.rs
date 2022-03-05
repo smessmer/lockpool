@@ -8,16 +8,16 @@ use std::sync::Arc;
 use crate::pool::LockPool;
 use crate::guard::Guard;
 
-/// [AsyncLockPool] is an implementation of [LockPool] (see [LockPool] for API details) that can be used
+/// [AsyncLockPool] is an implementation of [LockPoolAsync] (see [LockPoolAsync] for API details) that can be used
 /// in asynchronous code. It is a little slower than [SyncLockPool] but its locks can be held across
 /// `await` points.
+/// 
+/// This implementation can also be used in synchronous code since it also implements the [LockPool] API,
+/// but it will panic if you call [LockPool::lock] or [LockPool::lock_owned] from an `async` context,
+/// see the documentation of [tokio::sync::Mutex::blocking_lock].
 ///
 /// [AsyncLockPool] is based on top of [tokio::sync::Mutex] and does not support poisoning of locks.
 /// See the [tokio::sync::Mutex] documentation for details on poisoning.
-///
-/// [AsyncLockPool] implements [LockPool] for when you want to lock in synchronous code. That API will
-/// panic if called from asynchronous code, see the documentation of [tokio::sync::Mutex::blocking_lock].
-/// For use in asynchronous code, [AsyncLockPool] also implements the [LockPoolAsync] API.
 #[cfg(feature = "tokio")]
 pub type AsyncLockPool<K> = super::LockPoolImpl<K, tokio::sync::Mutex<()>>;
 
@@ -76,4 +76,6 @@ mod tests {
 
     // TODO Test unpoison behaves correctly
     // TODO Test LockPoolAsync API
+    // TODO Test that sync API panics when called from async context
+    //       - and make sure that that's correctly documented
 }

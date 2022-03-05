@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
+// TODO Add a test that makes sure that lock_owned() actually returns 'static, i.e. that we can move it around without caring about lifetimes. And make sure that the same test doesn't compile with lock().
+
 pub(crate) fn test_simple_lock_unlock<P: LockPool<isize>>() {
     let pool = P::new();
     assert_eq!(0, pool.num_locked_or_poisoned());

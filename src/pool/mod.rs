@@ -94,7 +94,9 @@ where
     ///
     /// Panics
     /// -----
-    /// This function might panic when called if the lock is already held by the current thread.
+    /// - This function might panic when called if the lock is already held by the current thread.
+    /// - If this is called through [AsyncLockPool], then this function will also panic when called from an `async` context.
+    ///   See documentation of [AsyncLockPool] for details.
     ///
     /// Examples
     /// -----
@@ -122,6 +124,36 @@ where
     /// This is similar to [LockPool::lock], but it works on an `Arc<LockPool>` instead of a [LockPool] and
     /// returns a [Guard] that binds its lifetime to the [LockPool] in that [Arc]. Such a [Guard] can be more
     /// easily moved around or cloned.
+    /// 
+    /// Errors
+    /// -----
+    /// If another user of this lock panicked while holding the lock, then this call will return an error once the lock is acquired.
+    ///
+    /// Panics
+    /// -----
+    /// - This function might panic when called if the lock is already held by the current thread.
+    /// - If this is called through [AsyncLockPool], then this function will also panic when called from an `async` context.
+    ///   See documentation of [AsyncLockPool] for details.
+    ///
+    /// Examples
+    /// -----
+    /// ```
+    /// use lockpool::{LockPool, SyncLockPool};
+    ///
+    /// let pool = SyncLockPool::new();
+    /// # (|| -> Result<(), lockpool::PoisonError<_, _>> {
+    /// let guard1 = pool.lock_owned(4)?;
+    /// let guard2 = pool.lock_owned(5)?;
+    ///
+    /// // This next line would cause a deadlock or panic because `4` is already locked on this thread
+    /// // let guard3 = pool.lock_owned(4)?;
+    ///
+    /// // After dropping the corresponding guard, we can lock it again
+    /// std::mem::drop(guard1);
+    /// let guard3 = pool.lock_owned(4)?;
+    /// # Ok(())
+    /// # })().unwrap();
+    /// ```
     fn lock_owned(
         self: &Arc<Self>,
         key: K,

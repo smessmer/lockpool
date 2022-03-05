@@ -1,6 +1,7 @@
 /// [SyncLockPool] is an implementation of [LockPool] (see [LockPool] for API details) that can be used
-/// in synchronous code. It is a little faster than [AsyncLockPool] but its locks cannot be held across
-/// `await` points.
+/// in synchronous code.
+/// This implementation can also be used in `async` code and will be a little faster than [AsyncLockPool],
+/// but its locks cannot be held across `await` points.
 ///
 /// [SyncLockPool] is based on top of [std::sync::Mutex] and supports poisoning of locks.
 /// See the [std::sync::Mutex] documentation for details on poisoning.
