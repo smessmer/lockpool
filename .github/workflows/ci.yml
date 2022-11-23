@@ -17,10 +17,9 @@ jobs:
         with:
           toolchain: stable
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           use-cross: true
           command: build
           args: --release --target armv5te-unknown-linux-gnueabi
@@ -33,10 +32,9 @@ jobs:
         with:
           toolchain: stable
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           use-cross: true
           command: build
           args: --all-features --release --target armv5te-unknown-linux-gnueabi
@@ -49,10 +47,9 @@ jobs:
         with:
           toolchain: stable
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           use-cross: true
           command: build
           args: --target armv5te-unknown-linux-gnueabi
@@ -65,10 +62,9 @@ jobs:
         with:
           toolchain: stable
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           use-cross: true
           command: build
           args: --all-features --target armv5te-unknown-linux-gnueabi
@@ -81,10 +77,9 @@ jobs:
         with:
           toolchain: stable
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           use-cross: true
           command: test
           args: --release --target armv5te-unknown-linux-gnueabi
@@ -97,10 +92,9 @@ jobs:
         with:
           toolchain: stable
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           use-cross: true
           command: test
           args: --release --all-features --target armv5te-unknown-linux-gnueabi
@@ -113,10 +107,9 @@ jobs:
         with:
           toolchain: stable
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           use-cross: true
           command: test
           args: --target armv5te-unknown-linux-gnueabi
@@ -129,10 +122,9 @@ jobs:
         with:
           toolchain: stable
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           use-cross: true
           command: test
           args: --all-features --target armv5te-unknown-linux-gnueabi
@@ -144,9 +136,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           command: test
           args: --release
   test_x64_stable_release_tokio:
@@ -157,9 +149,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           command: test
           args: --release --all-features
   test_x64_stable_debug:
@@ -170,9 +162,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           command: test
           args: ""
   test_x64_stable_debug_tokio:
@@ -183,9 +175,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           command: test
           args: --all-features
   build_arm_nightly_release:
@@ -197,10 +189,9 @@ jobs:
         with:
           toolchain: nightly
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           use-cross: true
           command: build
           args: --release --target armv5te-unknown-linux-gnueabi
@@ -213,10 +204,9 @@ jobs:
         with:
           toolchain: nightly
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           use-cross: true
           command: build
           args: --release --all-features --target armv5te-unknown-linux-gnueabi
@@ -229,10 +219,9 @@ jobs:
         with:
           toolchain: nightly
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           use-cross: true
           command: build
           args: --target armv5te-unknown-linux-gnueabi
@@ -245,10 +234,9 @@ jobs:
         with:
           toolchain: nightly
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           use-cross: true
           command: build
           args: --all-features --target armv5te-unknown-linux-gnueabi
@@ -261,10 +249,9 @@ jobs:
         with:
           toolchain: nightly
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           use-cross: true
           command: test
           args: --release --target armv5te-unknown-linux-gnueabi
@@ -277,10 +264,9 @@ jobs:
         with:
           toolchain: nightly
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           use-cross: true
           command: test
           args: --release --all-features --target armv5te-unknown-linux-gnueabi
@@ -293,10 +279,9 @@ jobs:
         with:
           toolchain: nightly
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           use-cross: true
           command: test
           args: --target armv5te-unknown-linux-gnueabi
@@ -309,10 +294,9 @@ jobs:
         with:
           toolchain: nightly
           target: armv5te-unknown-linux-gnueabi
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           use-cross: true
           command: test
           args: --all-features --target armv5te-unknown-linux-gnueabi
@@ -324,9 +308,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           command: test
           args: --release
   test_x64_nightly_release_tokio:
@@ -337,9 +321,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           command: test
           args: --release --all-features
   test_x64_nightly_debug:
@@ -350,9 +334,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           command: test
           args: ""
   test_x64_nightly_debug_tokio:
@@ -363,9 +347,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           command: test
           args: --all-features
   bench_x64_stable_release:
@@ -376,9 +360,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           command: bench
           args: ""
   bench_x64_stable_release_tokio:
@@ -389,9 +373,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           command: bench
           args: --all-features
   bench_x64_nightly_release:
@@ -402,9 +386,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           command: bench
           args: ""
   bench_x64_nightly_release_tokio:
@@ -415,9 +399,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           command: bench
           args: --all-features
   clippy_check:
@@ -439,7 +423,7 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt
-          override: true
+          default: true
       - uses: mbrobbel/rustfmt-check@0.3.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -460,10 +444,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
-          override: true
+          default: true
       - uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
           command: test
           args: --all-features --no-fail-fast
         env:
