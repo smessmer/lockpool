@@ -1,3 +1,9 @@
+//! **This library is not maintained anymore. Please use the [lockable](https://crates.io/crates/lockable) crate instead.**
+//!
+//! **By creating a [LockableHashMap](https://docs.rs/lockable/latest/lockable/struct.LockableHashMap.html) with `()`**
+//! **as the value type, you pretty much get the same functionality that was offered by this crate.**<br/>
+//! **There is an [example for a lock pool in the README](https://github.com/smessmer/lockable#lockpool-example).**
+//!
 //! This library offers a pool of locks where individual locks can be locked/unlocked by key.
 //! It initially considers all keys as "unlocked", but they can be locked
 //! and if a second thread tries to acquire a lock for the same key, they will have to wait.
