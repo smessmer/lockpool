@@ -116,7 +116,7 @@ mod tests {
 
     #[tokio::test]
     #[should_panic(
-        expected = "Cannot start a runtime from within a runtime. This happens because a function (like `block_on`) attempted to block the current thread while the thread is being used to drive asynchronous tasks."
+        expected = "Cannot block the current thread from within a runtime. This happens because a function attempted to block the current thread while the thread is being used to drive asynchronous tasks."
     )]
     async fn lock_from_async_context_with_sync_api() {
         let p = TokioLockPool::new();
@@ -125,7 +125,7 @@ mod tests {
 
     #[tokio::test]
     #[should_panic(
-        expected = "Cannot start a runtime from within a runtime. This happens because a function (like `block_on`) attempted to block the current thread while the thread is being used to drive asynchronous tasks."
+        expected = "Cannot block the current thread from within a runtime. This happens because a function attempted to block the current thread while the thread is being used to drive asynchronous tasks."
     )]
     async fn lock_owned_from_async_context_with_sync_api() {
         let p = Arc::new(TokioLockPool::new());

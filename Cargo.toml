@@ -19,14 +19,14 @@ description = "This library offers a pool of locks where individual locks can be
 [dependencies]
 owning_ref_lockable = "^0.4.2"
 thiserror = "^1.0.37"
-tokio = {version = "^1.17.0", optional = true, features = ["sync"]}
+tokio = {version = "^1.22.0", optional = true, features = ["sync"]}
 async-trait = {version = "^0.1.58", optional = true}
 derive_more = "^0.99.17"
 
 [dev-dependencies]
 criterion = "^0.4.0"
 crossbeam-utils = "^0.8.14"
-tokio = {version = "^1.17.0", features = ["sync", "time", "macros", "rt-multi-thread"]}
+tokio = {version = "^1.22.0", features = ["sync", "time", "macros", "rt-multi-thread"]}
 
 [features]
 tokio = ["dep:tokio", "dep:async-trait"]
