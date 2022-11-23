@@ -50,14 +50,14 @@
 mod error;
 mod guard;
 mod mutex;
-mod pool;
 mod never;
+mod pool;
 
 pub use error::{PoisonError, TryLockError, UnpoisonError};
 pub use guard::Guard;
+pub use never::{InfallibleUnwrap, Never};
 pub use pool::pool_sync::SyncLockPool;
 pub use pool::LockPool;
-pub use never::{Never, InfallibleUnwrap};
 
 #[cfg(feature = "tokio")]
 pub use pool::pool_async::{AsyncLockPool, TokioLockPool};
