@@ -3,6 +3,7 @@
 * Add Arc<LockPool>::lock_owned and Arc<LockPool>::try_lock_owned to allow easier lifetime handling.
 * Rename `LockPool` to `SyncLockPool` and add `TokioLockPool` with `TokioLockPool::lock_async` and `TokioLockPool::lock_owned_async` for using LockPools in async code.
 * Add Guard trait and Guard::key() to return the key locked by a guard
+* Update dependencies
 
 2.0.1
 -----
