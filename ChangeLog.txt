@@ -1,5 +1,6 @@
 3.0.0
 -----
+* MSRV is 1.65 because we use GATs
 * Add note that this crate is not maintained anymore
 * Add Arc<LockPool>::lock_owned and Arc<LockPool>::try_lock_owned to allow easier lifetime handling.
 * Rename `LockPool` to `SyncLockPool` and add `TokioLockPool` with `TokioLockPool::lock_async` and `TokioLockPool::lock_owned_async` for using LockPools in async code.
