@@ -3,6 +3,7 @@ authors = ["Sebastian Messmer <messmer@cryfs.org>"]
 edition = "2021"
 name = "lockpool"
 version = "2.0.3"
+rust-version = "1.65.0"
 readme = "README.md"
 documentation = "https://docs.rs/lockpool"
 homepage = "https://github.com/smessmer/lockpool"
@@ -20,6 +21,7 @@ owning_ref = {git = "https://github.com/smessmer/owning-ref-rs.git", rev = "33b9
 thiserror = "^1.0.30"
 tokio = {version = "^1.17.0", optional = true, features = ["sync"]}
 async-trait = {version = "^0.1.52", optional = true}
+derive_more = "^0.99.17"
 
 [dev-dependencies]
 criterion = "^0.3.5"

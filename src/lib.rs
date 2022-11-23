@@ -46,18 +46,18 @@
 //! If the `tokio` feature is enabled, then this crate also offers [TokioLockPool] which allows locks to be held across `await` points.
 
 #![deny(missing_docs)]
-#![feature(generic_associated_types)]
-#![feature(never_type)]
 
 mod error;
 mod guard;
 mod mutex;
 mod pool;
+mod never;
 
 pub use error::{PoisonError, TryLockError, UnpoisonError};
 pub use guard::Guard;
 pub use pool::pool_sync::SyncLockPool;
 pub use pool::LockPool;
+pub use never::{Never, InfallibleUnwrap};
 
 #[cfg(feature = "tokio")]
 pub use pool::pool_async::{AsyncLockPool, TokioLockPool};

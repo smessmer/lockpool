@@ -1,3 +1,5 @@
+use super::never::Never;
+
 pub trait LockError<'a> {
     type Guard;
     fn into_inner(self) -> Self::Guard;
@@ -11,7 +13,7 @@ impl<'a> LockError<'a> for std::sync::PoisonError<std::sync::MutexGuard<'a, ()>>
 }
 
 #[cfg(feature = "tokio")]
-impl<'a> LockError<'a> for ! {
+impl<'a> LockError<'a> for Never {
     type Guard = tokio::sync::MutexGuard<'a, ()>;
     fn into_inner(self) -> Self::Guard {
         panic!("This can't happen since it requires an instance of the never type");
@@ -55,7 +57,7 @@ impl MutexImpl for std::sync::Mutex<()> {
 #[cfg(feature = "tokio")]
 impl MutexImpl for tokio::sync::Mutex<()> {
     type Guard<'a> = tokio::sync::MutexGuard<'a, ()>;
-    type LockError<'a> = !;
+    type LockError<'a> = Never;
 
     const SUPPORTS_POISONING: bool = false;
 
