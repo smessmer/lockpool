@@ -1,3 +1,7 @@
+3.0.1
+-----
+* Update depreciation notice
+
 3.0.0
 -----
 * MSRV is 1.65 because we use GATs
