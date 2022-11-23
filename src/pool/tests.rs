@@ -43,7 +43,7 @@ pub mod utils {
         pool: &Arc<P>,
         key: isize,
         counter: &Arc<AtomicU32>,
-        barrier: Option<&Arc<Mutex<()>>>,
+        barrier: Option<&Arc<tokio::sync::Mutex<()>>>,
     ) -> JoinHandle<()> {
         let pool = Arc::clone(pool);
         let counter = Arc::clone(counter);
@@ -53,7 +53,7 @@ pub mod utils {
             let _guard = runtime.block_on(pool.lock_async(key));
             counter.fetch_add(1, Ordering::SeqCst);
             if let Some(barrier) = barrier {
-                let _barrier = barrier.lock().unwrap();
+                let _barrier = barrier.blocking_lock();
             }
         })
     }
@@ -62,7 +62,7 @@ pub mod utils {
         pool: &Arc<P>,
         key: isize,
         counter: &Arc<AtomicU32>,
-        barrier: Option<&Arc<Mutex<()>>>,
+        barrier: Option<&Arc<tokio::sync::Mutex<()>>>,
     ) -> JoinHandle<()> {
         let pool = Arc::clone(pool);
         let counter = Arc::clone(counter);
@@ -72,7 +72,7 @@ pub mod utils {
             counter.fetch_add(1, Ordering::SeqCst);
             let _guard = guard.unwrap();
             if let Some(barrier) = barrier {
-                let _barrier = barrier.lock().unwrap();
+                let _barrier = barrier.blocking_lock();
             }
         })
     }
@@ -82,7 +82,7 @@ pub mod utils {
         pool: &Arc<P>,
         key: isize,
         counter: &Arc<AtomicU32>,
-        barrier: Option<&Arc<Mutex<()>>>,
+        barrier: Option<&Arc<tokio::sync::Mutex<()>>>,
     ) -> JoinHandle<()> {
         let pool = Arc::clone(pool);
         let counter = Arc::clone(counter);
@@ -92,7 +92,7 @@ pub mod utils {
             let _guard = runtime.block_on(pool.lock_owned_async(key));
             counter.fetch_add(1, Ordering::SeqCst);
             if let Some(barrier) = barrier {
-                let _barrier = barrier.lock().unwrap();
+                let _barrier = barrier.blocking_lock();
             }
         })
     }
@@ -397,8 +397,8 @@ pub fn test_multi_concurrent_lock_owned<P: LockPool<isize> + Send + Sync + 'stat
     let guard = pool.lock_owned(5).unwrap();
 
     let counter = Arc::new(AtomicU32::new(0));
-    let barrier = Arc::new(Mutex::new(()));
-    let barrier_guard = barrier.lock().unwrap();
+    let barrier = Arc::new(tokio::sync::Mutex::new(()));
+    let barrier_guard = barrier.blocking_lock();
 
     let child1 = launch_locking_owned_thread(&pool, 5, &counter, Some(&barrier));
     let child2 = launch_locking_owned_thread(&pool, 5, &counter, Some(&barrier));

@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use crossbeam_utils::thread;
 #[cfg(feature = "tokio")]
-use lockpool::AsyncLockPool;
+use lockpool::TokioLockPool;
 use lockpool::{LockPool, SyncLockPool};
 use std::sync::{Arc, Mutex};
 
@@ -27,8 +27,8 @@ pub fn single_thread_lock_unlock(c: &mut Criterion) {
         })
     });
     #[cfg(feature = "tokio")]
-    g.bench_function("AsyncLockPool (same key)", |b| {
-        let pool = AsyncLockPool::new();
+    g.bench_function("TokioLockPool (same key)", |b| {
+        let pool = TokioLockPool::new();
         b.iter(|| {
             let _g = pool.lock(black_box(3)).unwrap();
         })
@@ -42,8 +42,8 @@ pub fn single_thread_lock_unlock(c: &mut Criterion) {
         })
     });
     #[cfg(feature = "tokio")]
-    g.bench_function("AsyncLockPool (different key)", |b| {
-        let pool = AsyncLockPool::new();
+    g.bench_function("TokioLockPool (different key)", |b| {
+        let pool = TokioLockPool::new();
         let mut i = 0;
         b.iter(|| {
             i += 1;
@@ -99,8 +99,8 @@ pub fn multi_thread_lock_unlock(c: &mut Criterion) {
         })
     });
     #[cfg(feature = "tokio")]
-    g.bench_function("AsyncLockPool (same key)", |b| {
-        let pool = AsyncLockPool::new();
+    g.bench_function("TokioLockPool (same key)", |b| {
+        let pool = TokioLockPool::new();
         b.iter(move || {
             spawn_threads(NUM_THREADS, |_| {
                 for _ in 0..NUM_LOCKS_PER_THREAD {
@@ -120,8 +120,8 @@ pub fn multi_thread_lock_unlock(c: &mut Criterion) {
         })
     });
     #[cfg(feature = "tokio")]
-    g.bench_function("AsyncLockPool (different key)", |b| {
-        let pool = AsyncLockPool::new();
+    g.bench_function("TokioLockPool (different key)", |b| {
+        let pool = TokioLockPool::new();
         b.iter(move || {
             spawn_threads(NUM_THREADS, |thread_index| {
                 for _ in 0..NUM_LOCKS_PER_THREAD {

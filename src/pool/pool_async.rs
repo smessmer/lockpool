@@ -80,7 +80,7 @@ mod tests {
     };
     use crate::LockPool;
     use std::sync::atomic::{AtomicU32, Ordering};
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
     use std::thread;
     use std::time::Duration;
 
@@ -252,8 +252,8 @@ mod tests {
         let guard = pool.lock_async(5).await;
 
         let counter = Arc::new(AtomicU32::new(0));
-        let barrier = Arc::new(Mutex::new(()));
-        let barrier_guard = barrier.lock().unwrap();
+        let barrier = Arc::new(tokio::sync::Mutex::new(()));
+        let barrier_guard = barrier.lock().await;
 
         let child1 = launch_locking_async_thread(&pool, 5, &counter, Some(&barrier));
         let child2 = launch_locking_async_thread(&pool, 5, &counter, Some(&barrier));
@@ -291,8 +291,8 @@ mod tests {
         let guard = pool.lock_owned_async(5).await;
 
         let counter = Arc::new(AtomicU32::new(0));
-        let barrier = Arc::new(Mutex::new(()));
-        let barrier_guard = barrier.lock().unwrap();
+        let barrier = Arc::new(tokio::sync::Mutex::new(()));
+        let barrier_guard = barrier.lock().await;
 
         let child1 = launch_locking_owned_async_thread(&pool, 5, &counter, Some(&barrier));
         let child2 = launch_locking_owned_async_thread(&pool, 5, &counter, Some(&barrier));

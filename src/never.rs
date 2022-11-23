@@ -36,6 +36,8 @@ mod tests {
 
     #[test]
     fn test_infallible_unwrap() {
+        #![allow(clippy::unit_cmp)]
+
         let result: Result<i64, Never> = Ok(4);
         assert_eq!(4, result.infallible_unwrap());
 
