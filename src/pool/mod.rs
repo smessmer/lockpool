@@ -373,10 +373,7 @@ where
         }
     }
 
-    fn _lock<'a, S: 'a + Deref<Target = Self>>(
-        this: S,
-        key: K,
-    ) -> Result<GuardImpl<'a, K, M, S>, PoisonError<K, GuardImpl<'a, K, M, S>>> {
+    fn _lock<'a, S: 'a + Deref<Target = Self>>(this: S, key: K) -> LockResult<'a, K, M, S> {
         let mutex = this._load_or_insert_mutex_for_key(&key);
         // Now we have an Arc::clone of the mutex for this key, and the global mutex is already unlocked so other threads can access the hash map.
         // The following blocks until the mutex for this key is acquired.
@@ -401,10 +398,7 @@ where
         }
     }
 
-    fn _try_lock<'a, S: 'a + Deref<Target = Self>>(
-        this: S,
-        key: K,
-    ) -> Result<GuardImpl<'a, K, M, S>, TryLockError<K, GuardImpl<'a, K, M, S>>> {
+    fn _try_lock<'a, S: 'a + Deref<Target = Self>>(this: S, key: K) -> TryLockResult<'a, K, M, S> {
         let mutex = this._load_or_insert_mutex_for_key(&key);
         // Now we have an Arc::clone of the mutex for this key, and the global mutex is already unlocked so other threads can access the hash map.
         // The following tries to lock the mutex.
@@ -472,6 +466,11 @@ where
         }
     }
 }
+
+pub type LockResult<'a, K, M, S> =
+    Result<GuardImpl<'a, K, M, S>, PoisonError<K, GuardImpl<'a, K, M, S>>>;
+pub type TryLockResult<'a, K, M, S> =
+    Result<GuardImpl<'a, K, M, S>, TryLockError<K, GuardImpl<'a, K, M, S>>>;
 
 #[cfg(test)]
 mod tests;
