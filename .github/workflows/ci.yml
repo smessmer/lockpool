@@ -8,174 +8,174 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # build_arm_stable_release:
-  #   name: Build (ARM, stable, release)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #         target: armv5te-unknown-linux-gnueabi
-  #         override: true
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         use-cross: true
-  #         command: build
-  #         args: --release --target armv5te-unknown-linux-gnueabi
-  # build_arm_stable_release_tokio:
-  #   name: Build (ARM, stable, release, tokio)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #         target: armv5te-unknown-linux-gnueabi
-  #         override: true
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         use-cross: true
-  #         command: build
-  #         args: --all-features --release --target armv5te-unknown-linux-gnueabi
-  # build_arm_stable_debug:
-  #   name: Build (ARM, stable, debug)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #         target: armv5te-unknown-linux-gnueabi
-  #         override: true
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         use-cross: true
-  #         command: build
-  #         args: --target armv5te-unknown-linux-gnueabi
-  # build_arm_stable_debug_tokio:
-  #   name: Build (ARM, stable, debug, tokio)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #         target: armv5te-unknown-linux-gnueabi
-  #         override: true
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         use-cross: true
-  #         command: build
-  #         args: --all-features --target armv5te-unknown-linux-gnueabi
-  # test_arm_stable_release:
-  #   name: Test (ARM, stable, release)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #         target: armv5te-unknown-linux-gnueabi
-  #         override: true
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         use-cross: true
-  #         command: test
-  #         args: --release --target armv5te-unknown-linux-gnueabi
-  # test_arm_stable_release_tokio:
-  #   name: Test (ARM, stable, release, tokio)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #         target: armv5te-unknown-linux-gnueabi
-  #         override: true
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         use-cross: true
-  #         command: test
-  #         args: --release --all-features --target armv5te-unknown-linux-gnueabi
-  # test_arm_stable_debug:
-  #   name: Test (ARM, stable, debug)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #         target: armv5te-unknown-linux-gnueabi
-  #         override: true
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         use-cross: true
-  #         command: test
-  #         args: --target armv5te-unknown-linux-gnueabi
-  # test_arm_stable_debug_tokio:
-  #   name: Test (ARM, stable, debug, tokio)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #         target: armv5te-unknown-linux-gnueabi
-  #         override: true
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         use-cross: true
-  #         command: test
-  #         args: --all-features --target armv5te-unknown-linux-gnueabi
-  # test_x64_stable_release:
-  #   name: Test (x64, stable, release)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         command: test
-  #         args: --release
-  # test_x64_stable_release_tokio:
-  #   name: Test (x64, stable, release, tokio)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         command: test
-  #         args: --release --all-features
-  # test_x64_stable_debug:
-  #   name: Test (x64, stable, debug)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         command: test
-  #         args: ""
-  # test_x64_stable_debug_tokio:
-  #   name: Test (x64, stable, debug, tokio)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         command: test
-  #         args: --all-features
+  build_arm_stable_release:
+    name: Build (ARM, stable, release)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv5te-unknown-linux-gnueabi
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target armv5te-unknown-linux-gnueabi
+  build_arm_stable_release_tokio:
+    name: Build (ARM, stable, release, tokio)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv5te-unknown-linux-gnueabi
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --all-features --release --target armv5te-unknown-linux-gnueabi
+  build_arm_stable_debug:
+    name: Build (ARM, stable, debug)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv5te-unknown-linux-gnueabi
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target armv5te-unknown-linux-gnueabi
+  build_arm_stable_debug_tokio:
+    name: Build (ARM, stable, debug, tokio)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv5te-unknown-linux-gnueabi
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --all-features --target armv5te-unknown-linux-gnueabi
+  test_arm_stable_release:
+    name: Test (ARM, stable, release)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv5te-unknown-linux-gnueabi
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: test
+          args: --release --target armv5te-unknown-linux-gnueabi
+  test_arm_stable_release_tokio:
+    name: Test (ARM, stable, release, tokio)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv5te-unknown-linux-gnueabi
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: test
+          args: --release --all-features --target armv5te-unknown-linux-gnueabi
+  test_arm_stable_debug:
+    name: Test (ARM, stable, debug)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv5te-unknown-linux-gnueabi
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: test
+          args: --target armv5te-unknown-linux-gnueabi
+  test_arm_stable_debug_tokio:
+    name: Test (ARM, stable, debug, tokio)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv5te-unknown-linux-gnueabi
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: test
+          args: --all-features --target armv5te-unknown-linux-gnueabi
+  test_x64_stable_release:
+    name: Test (x64, stable, release)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release
+  test_x64_stable_release_tokio:
+    name: Test (x64, stable, release, tokio)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release --all-features
+  test_x64_stable_debug:
+    name: Test (x64, stable, debug)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: ""
+  test_x64_stable_debug_tokio:
+    name: Test (x64, stable, debug, tokio)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features
   build_arm_nightly_release:
     name: Build (ARM, nightly, release)
     runs-on: ubuntu-latest
@@ -344,30 +344,30 @@ jobs:
         with:
           command: test
           args: --all-features
-  # bench_x64_stable_release:
-  #   name: Bench (x64, stable, release)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         command: bench
-  #         args: ""
-  # bench_x64_stable_release_tokio:
-  #   name: Bench (x64, stable, release, tokio)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         command: bench
-  #         args: --all-features
+  bench_x64_stable_release:
+    name: Bench (x64, stable, release)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: bench
+          args: ""
+  bench_x64_stable_release_tokio:
+    name: Bench (x64, stable, release, tokio)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: bench
+          args: --all-features
   bench_x64_nightly_release:
     name: Bench (x64, nightly, release)
     runs-on: ubuntu-latest
