@@ -1,3 +1,4 @@
+#[cfg(feature = "tokio")]
 use super::never::Never;
 
 pub trait LockError<'a> {

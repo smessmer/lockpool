@@ -1,4 +1,4 @@
-use owning_ref::OwningHandle;
+use owning_ref_lockable::OwningHandle;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;

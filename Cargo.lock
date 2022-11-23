@@ -272,7 +272,7 @@ dependencies = [
  "criterion",
  "crossbeam-utils",
  "derive_more",
- "owning_ref",
+ "owning_ref_lockable",
  "thiserror",
  "tokio",
 ]
@@ -327,9 +327,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
-name = "owning_ref"
-version = "0.4.1"
-source = "git+https://github.com/smessmer/owning-ref-rs.git?rev=33b9630201751021958405ac956d5f2ea23f4909#33b9630201751021958405ac956d5f2ea23f4909"
+name = "owning_ref_lockable"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6e541805afb3c88b99843162a5cd14aff5db3c50cb7ea6d9a1bad3d3ffacd7b"
 dependencies = [
  "stable_deref_trait",
 ]

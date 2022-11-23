@@ -1,4 +1,4 @@
-use owning_ref::OwningHandle;
+use owning_ref_lockable::OwningHandle;
 use std::fmt::{self, Debug};
 use std::hash::Hash;
 use std::ops::Deref;

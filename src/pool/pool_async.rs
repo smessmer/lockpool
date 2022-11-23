@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use owning_ref::OwningHandle;
+use owning_ref_lockable::OwningHandle;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
